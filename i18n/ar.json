@@ -1,0 +1,357 @@
+{
+  "_meta": {
+    "dir": "rtl",
+    "lang": "ar",
+    "locale": "ar-DZ"
+  },
+  "common": {
+    "appName": "فريلانس DZ",
+    "tagline": "المنصة الجزائرية للعمل الحر",
+    "loading": "جارٍ التحميل...",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "submit": "إرسال",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "back": "رجوع",
+    "next": "التالي",
+    "prev": "السابق",
+    "yes": "نعم",
+    "no": "لا",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "seeAll": "عرض الكل",
+    "noResults": "لا توجد نتائج",
+    "currency": "دج",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "or": "أو",
+    "and": "و"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "username": "اسم المستخدم",
+    "fullName": "الاسم الكامل",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "dontHaveAccount": "ليس لديك حساب؟",
+    "loginSuccess": "تم تسجيل الدخول بنجاح",
+    "logoutSuccess": "تم تسجيل الخروج",
+    "registerSuccess": "تم إنشاء الحساب بنجاح",
+    "errors": {
+      "invalidEmail": "البريد الإلكتروني غير صالح",
+      "passwordTooShort": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين",
+      "emailInUse": "البريد الإلكتروني مستخدم بالفعل",
+      "invalidCredentials": "بيانات الدخول غير صحيحة",
+      "userBanned": "تم تعليق هذا الحساب"
+    }
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "jobs": "المشاريع",
+    "freelancers": "المستقلون",
+    "messages": "الرسائل",
+    "notifications": "الإشعارات",
+    "profile": "الملف الشخصي",
+    "dashboard": "لوحة التحكم",
+    "wallet": "المحفظة",
+    "settings": "الإعدادات",
+    "help": "المساعدة",
+    "admin": "لوحة الإدارة"
+  },
+  "roles": {
+    "client": "صاحب عمل",
+    "freelancer": "مستقل",
+    "both": "الاثنان",
+    "switchToClient": "التحويل إلى وضع صاحب العمل",
+    "switchToFreelancer": "التحويل إلى وضع المستقل",
+    "currentRole": "الوضع الحالي"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "bio": "نبذة شخصية",
+    "skills": "المهارات",
+    "hourlyRate": "السعر في الساعة",
+    "wilaya": "الولاية",
+    "phone": "رقم الهاتف",
+    "website": "الموقع الإلكتروني",
+    "rating": "التقييم",
+    "reviews": "التقييمات",
+    "memberSince": "عضو منذ",
+    "verified": "موثق",
+    "completedJobs": "المشاريع المنجزة",
+    "portfolio": "أعمالي",
+    "uploadAvatar": "تحميل الصورة",
+    "editProfile": "تعديل الملف الشخصي",
+    "publicProfile": "الملف العام"
+  },
+  "jobs": {
+    "title": "المشاريع",
+    "postJob": "نشر مشروع",
+    "editJob": "تعديل المشروع",
+    "jobTitle": "عنوان المشروع",
+    "description": "الوصف",
+    "category": "الفئة",
+    "requiredSkills": "المهارات المطلوبة",
+    "budget": "الميزانية",
+    "budgetMin": "الحد الأدنى",
+    "budgetMax": "الحد الأقصى",
+    "deadline": "الموعد النهائي",
+    "proposals": "العروض",
+    "proposalsCount": "{{count}} عرض",
+    "noProposals": "لا توجد عروض بعد",
+    "views": "مشاهدة",
+    "postedBy": "نُشر بواسطة",
+    "postedAgo": "منذ {{time}}",
+    "status": {
+      "open": "مفتوح",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "disputed": "متنازع عليه"
+    },
+    "categories": {
+      "development": "تطوير",
+      "design": "تصميم",
+      "marketing": "تسويق",
+      "writing": "كتابة",
+      "translation": "ترجمة",
+      "data": "بيانات",
+      "business": "أعمال",
+      "other": "أخرى"
+    },
+    "errors": {
+      "titleRequired": "عنوان المشروع مطلوب",
+      "descriptionRequired": "الوصف مطلوب",
+      "budgetInvalid": "الميزانية غير صالحة"
+    },
+    "filters": {
+      "all": "الكل",
+      "byCategory": "حسب الفئة",
+      "byBudget": "حسب الميزانية",
+      "byDate": "حسب التاريخ",
+      "newest": "الأحدث",
+      "oldest": "الأقدم",
+      "highestBudget": "أعلى ميزانية",
+      "lowestBudget": "أدنى ميزانية"
+    }
+  },
+  "proposals": {
+    "title": "العروض",
+    "submitProposal": "تقديم عرض",
+    "coverLetter": "رسالة تقديم",
+    "bidAmount": "مبلغ العرض",
+    "deliveryDays": "مدة التسليم (بالأيام)",
+    "milestones": "مراحل التنفيذ",
+    "addMilestone": "إضافة مرحلة",
+    "milestoneName": "اسم المرحلة",
+    "milestoneAmount": "مبلغ المرحلة",
+    "milestoneDueDate": "تاريخ استحقاق المرحلة",
+    "status": {
+      "pending": "في الانتظار",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "withdrawn": "مسحوب"
+    },
+    "accept": "قبول العرض",
+    "reject": "رفض العرض",
+    "withdraw": "سحب العرض",
+    "errors": {
+      "alreadySubmitted": "لقد قدمت عرضاً لهذا المشروع من قبل",
+      "jobClosed": "هذا المشروع لم يعد يقبل عروضاً"
+    }
+  },
+  "contracts": {
+    "title": "العقود",
+    "activeContracts": "العقود النشطة",
+    "completedContracts": "العقود المكتملة",
+    "contractDetails": "تفاصيل العقد",
+    "totalAmount": "المبلغ الإجمالي",
+    "platformFee": "رسوم المنصة (5%)",
+    "netAmount": "المبلغ الصافي",
+    "startDate": "تاريخ البدء",
+    "endDate": "تاريخ الانتهاء",
+    "milestones": {
+      "title": "مراحل التنفيذ",
+      "status": {
+        "pending": "في الانتظار",
+        "in_progress": "جارٍ التنفيذ",
+        "submitted": "تم التسليم",
+        "approved": "مُعتمد",
+        "disputed": "متنازع عليه"
+      },
+      "lockFunds": "تأمين الأموال للمرحلة",
+      "submitWork": "تسليم العمل",
+      "approveWork": "الموافقة على العمل",
+      "requestRevision": "طلب مراجعة",
+      "fundsLocked": "الأموال محجوزة في الضمان"
+    },
+    "status": {
+      "active": "نشط",
+      "paused": "موقوف مؤقتاً",
+      "completed": "مكتمل",
+      "disputed": "متنازع عليه",
+      "cancelled": "ملغي"
+    }
+  },
+  "escrow": {
+    "title": "نظام الضمان",
+    "description": "أموالك محمية حتى تنتهي من المشروع بنجاح",
+    "locked": "محجوز في الضمان",
+    "released": "تم الإفراج عنه",
+    "total": "الإجمالي",
+    "howItWorks": "كيف يعمل نظام الضمان",
+    "step1": "يقوم صاحب العمل بإيداع الأموال",
+    "step2": "يُنجز المستقل العمل",
+    "step3": "يراجع صاحب العمل ويوافق",
+    "step4": "تُحرَّر الأموال للمستقل"
+  },
+  "wallet": {
+    "title": "المحفظة",
+    "balance": "الرصيد المتاح",
+    "deposit": "إيداع",
+    "withdraw": "سحب",
+    "history": "سجل المعاملات",
+    "depositAmount": "مبلغ الإيداع",
+    "withdrawAmount": "مبلغ السحب",
+    "paymentMethod": "طريقة الدفع",
+    "methods": {
+      "ccp": "حساب CCP",
+      "baridimob": "بريدي موب",
+      "cib": "بطاقة CIB",
+      "cash": "دفع نقدي"
+    },
+    "transactions": {
+      "deposit": "إيداع",
+      "escrow_lock": "تأمين الضمان",
+      "escrow_release": "الإفراج عن الضمان",
+      "refund": "استرداد",
+      "withdrawal": "سحب",
+      "platform_fee": "رسوم المنصة"
+    },
+    "status": {
+      "pending": "معلق",
+      "completed": "مكتمل",
+      "failed": "فشل",
+      "reversed": "مُعكوس"
+    }
+  },
+  "messages": {
+    "title": "الرسائل",
+    "newMessage": "رسالة جديدة",
+    "typeMessage": "اكتب رسالة...",
+    "send": "إرسال",
+    "noMessages": "لا توجد رسائل بعد",
+    "startConversation": "ابدأ محادثة",
+    "attachFile": "إرفاق ملف",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "lastSeen": "آخر ظهور {{time}}"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تعليم الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات",
+    "types": {
+      "new_proposal": "عرض جديد على مشروعك",
+      "proposal_accepted": "تم قبول عرضك",
+      "proposal_rejected": "تم رفض عرضك",
+      "contract_started": "بدأ عقد جديد",
+      "milestone_submitted": "تم تسليم مرحلة للمراجعة",
+      "milestone_approved": "تم الموافقة على المرحلة",
+      "payment_released": "تم تحرير الدفعة",
+      "new_message": "رسالة جديدة من {{name}}",
+      "review_received": "تقييم جديد",
+      "dispute_opened": "تم فتح نزاع",
+      "dispute_resolved": "تم حل النزاع"
+    }
+  },
+  "reviews": {
+    "title": "التقييمات",
+    "writeReview": "كتابة تقييم",
+    "rating": "التقييم",
+    "comment": "التعليق",
+    "stars": {
+      "1": "ضعيف",
+      "2": "مقبول",
+      "3": "جيد",
+      "4": "جيد جداً",
+      "5": "ممتاز"
+    }
+  },
+  "disputes": {
+    "title": "النزاعات",
+    "openDispute": "فتح نزاع",
+    "reason": "سبب النزاع",
+    "evidence": "الأدلة والمرفقات",
+    "status": {
+      "open": "مفتوح",
+      "under_review": "قيد المراجعة",
+      "resolved_client": "تم الحل لصالح صاحب العمل",
+      "resolved_freelancer": "تم الحل لصالح المستقل",
+      "closed": "مغلق"
+    }
+  },
+  "admin": {
+    "title": "لوحة إدارة فريلانس DZ",
+    "overview": "نظرة عامة",
+    "users": "المستخدمون",
+    "jobs": "المشاريع",
+    "contracts": "العقود",
+    "transactions": "المعاملات",
+    "disputes": "النزاعات",
+    "settings": "إعدادات المنصة",
+    "stats": {
+      "totalUsers": "إجمالي المستخدمين",
+      "newUsers30d": "مستخدمون جدد (30 يوم)",
+      "activeJobs": "مشاريع نشطة",
+      "activeContracts": "عقود نشطة",
+      "totalEscrowed": "إجمالي المبالغ المحجوزة",
+      "feesCollected": "الرسوم المحصلة",
+      "openDisputes": "نزاعات مفتوحة",
+      "bannedUsers": "مستخدمون محظورون"
+    },
+    "actions": {
+      "banUser": "حظر المستخدم",
+      "unbanUser": "رفع الحظر",
+      "verifyUser": "توثيق المستخدم",
+      "resolveDispute": "حل النزاع",
+      "featureJob": "تمييز المشروع",
+      "cancelContract": "إلغاء العقد"
+    }
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "notFound": "الصفحة غير موجودة",
+    "unauthorized": "غير مصرح لك بالوصول",
+    "forbidden": "ممنوع الوصول",
+    "serverError": "خطأ في الخادم",
+    "networkError": "خطأ في الاتصال بالإنترنت",
+    "sessionExpired": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً"
+  },
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ {{count}} دقيقة",
+    "hoursAgo": "منذ {{count}} ساعة",
+    "daysAgo": "منذ {{count}} يوم",
+    "weeksAgo": "منذ {{count}} أسبوع",
+    "monthsAgo": "منذ {{count}} شهر"
+  },
+  "wilayas": {
+    "1": "أدرار", "2": "الشلف", "3": "الأغواط", "4": "أم البواقي",
+    "5": "باتنة", "6": "بجاية", "7": "بسكرة", "8": "بشار",
+    "9": "البليدة", "10": "البويرة", "16": "الجزائر العاصمة",
+    "19": "سطيف", "23": "عنابة", "25": "قسنطينة", "31": "وهران"
+  }
+}

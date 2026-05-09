@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "dir": "ltr",
+    "lang": "fr",
+    "locale": "fr-DZ"
+  },
+  "common": {
+    "appName": "Freelance DZ",
+    "tagline": "La plateforme algérienne du travail indépendant",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "back": "Retour",
+    "next": "Suivant",
+    "prev": "Précédent",
+    "yes": "Oui",
+    "no": "Non",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "seeAll": "Tout voir",
+    "noResults": "Aucun résultat",
+    "currency": "DA",
+    "required": "Obligatoire",
+    "optional": "Optionnel",
+    "or": "ou",
+    "and": "et"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "Créer un compte",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "username": "Nom d'utilisateur",
+    "fullName": "Nom complet",
+    "alreadyHaveAccount": "Vous avez déjà un compte ?",
+    "dontHaveAccount": "Vous n'avez pas de compte ?",
+    "loginSuccess": "Connexion réussie",
+    "logoutSuccess": "Déconnexion réussie",
+    "registerSuccess": "Compte créé avec succès",
+    "errors": {
+      "invalidEmail": "Adresse e-mail invalide",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "passwordMismatch": "Les mots de passe ne correspondent pas",
+      "emailInUse": "Cette adresse e-mail est déjà utilisée",
+      "invalidCredentials": "Identifiants incorrects",
+      "userBanned": "Ce compte a été suspendu"
+    }
+  },
+  "nav": {
+    "home": "Accueil",
+    "jobs": "Projets",
+    "freelancers": "Freelancers",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "dashboard": "Tableau de bord",
+    "wallet": "Portefeuille",
+    "settings": "Paramètres",
+    "help": "Aide",
+    "admin": "Administration"
+  },
+  "roles": {
+    "client": "Client",
+    "freelancer": "Freelancer",
+    "both": "Les deux",
+    "switchToClient": "Passer en mode Client",
+    "switchToFreelancer": "Passer en mode Freelancer",
+    "currentRole": "Mode actuel"
+  },
+  "profile": {
+    "title": "Profil",
+    "bio": "Biographie",
+    "skills": "Compétences",
+    "hourlyRate": "Tarif horaire",
+    "wilaya": "Wilaya",
+    "phone": "Téléphone",
+    "website": "Site web",
+    "rating": "Note",
+    "reviews": "Avis",
+    "memberSince": "Membre depuis",
+    "verified": "Vérifié",
+    "completedJobs": "Projets réalisés",
+    "portfolio": "Portfolio",
+    "uploadAvatar": "Télécharger une photo",
+    "editProfile": "Modifier le profil",
+    "publicProfile": "Profil public"
+  },
+  "jobs": {
+    "title": "Projets",
+    "postJob": "Publier un projet",
+    "editJob": "Modifier le projet",
+    "jobTitle": "Titre du projet",
+    "description": "Description",
+    "category": "Catégorie",
+    "requiredSkills": "Compétences requises",
+    "budget": "Budget",
+    "budgetMin": "Minimum",
+    "budgetMax": "Maximum",
+    "deadline": "Date limite",
+    "proposals": "Propositions",
+    "proposalsCount": "{{count}} proposition(s)",
+    "noProposals": "Aucune proposition pour l'instant",
+    "views": "vues",
+    "postedBy": "Publié par",
+    "postedAgo": "Il y a {{time}}",
+    "status": {
+      "open": "Ouvert",
+      "in_progress": "En cours",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "disputed": "En litige"
+    },
+    "categories": {
+      "development": "Développement",
+      "design": "Design",
+      "marketing": "Marketing",
+      "writing": "Rédaction",
+      "translation": "Traduction",
+      "data": "Données",
+      "business": "Business",
+      "other": "Autre"
+    },
+    "errors": {
+      "titleRequired": "Le titre du projet est obligatoire",
+      "descriptionRequired": "La description est obligatoire",
+      "budgetInvalid": "Budget invalide"
+    },
+    "filters": {
+      "all": "Tous",
+      "byCategory": "Par catégorie",
+      "byBudget": "Par budget",
+      "byDate": "Par date",
+      "newest": "Plus récent",
+      "oldest": "Plus ancien",
+      "highestBudget": "Budget le plus élevé",
+      "lowestBudget": "Budget le plus bas"
+    }
+  },
+  "proposals": {
+    "title": "Propositions",
+    "submitProposal": "Soumettre une proposition",
+    "coverLetter": "Lettre de motivation",
+    "bidAmount": "Montant de l'offre",
+    "deliveryDays": "Délai de livraison (jours)",
+    "milestones": "Étapes du projet",
+    "addMilestone": "Ajouter une étape",
+    "milestoneName": "Nom de l'étape",
+    "milestoneAmount": "Montant de l'étape",
+    "milestoneDueDate": "Date d'échéance",
+    "status": {
+      "pending": "En attente",
+      "accepted": "Acceptée",
+      "rejected": "Refusée",
+      "withdrawn": "Retirée"
+    },
+    "accept": "Accepter la proposition",
+    "reject": "Refuser la proposition",
+    "withdraw": "Retirer la proposition",
+    "errors": {
+      "alreadySubmitted": "Vous avez déjà soumis une proposition pour ce projet",
+      "jobClosed": "Ce projet n'accepte plus de propositions"
+    }
+  },
+  "contracts": {
+    "title": "Contrats",
+    "activeContracts": "Contrats actifs",
+    "completedContracts": "Contrats terminés",
+    "contractDetails": "Détails du contrat",
+    "totalAmount": "Montant total",
+    "platformFee": "Frais de plateforme (5%)",
+    "netAmount": "Montant net",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "milestones": {
+      "title": "Étapes",
+      "status": {
+        "pending": "En attente",
+        "in_progress": "En cours",
+        "submitted": "Livré",
+        "approved": "Approuvé",
+        "disputed": "En litige"
+      },
+      "lockFunds": "Bloquer les fonds pour cette étape",
+      "submitWork": "Livrer le travail",
+      "approveWork": "Approuver le travail",
+      "requestRevision": "Demander une révision",
+      "fundsLocked": "Fonds bloqués en séquestre"
+    },
+    "status": {
+      "active": "Actif",
+      "paused": "En pause",
+      "completed": "Terminé",
+      "disputed": "En litige",
+      "cancelled": "Annulé"
+    }
+  },
+  "escrow": {
+    "title": "Système de Séquestre",
+    "description": "Vos fonds sont protégés jusqu'à la réussite du projet",
+    "locked": "Bloqué en séquestre",
+    "released": "Libéré",
+    "total": "Total",
+    "howItWorks": "Comment fonctionne le séquestre",
+    "step1": "Le client dépose les fonds",
+    "step2": "Le freelancer réalise le travail",
+    "step3": "Le client vérifie et approuve",
+    "step4": "Les fonds sont libérés au freelancer"
+  },
+  "wallet": {
+    "title": "Portefeuille",
+    "balance": "Solde disponible",
+    "deposit": "Dépôt",
+    "withdraw": "Retrait",
+    "history": "Historique des transactions",
+    "depositAmount": "Montant du dépôt",
+    "withdrawAmount": "Montant du retrait",
+    "paymentMethod": "Mode de paiement",
+    "methods": {
+      "ccp": "Compte CCP",
+      "baridimob": "BaridiMob",
+      "cib": "Carte CIB",
+      "cash": "Paiement en espèces"
+    },
+    "transactions": {
+      "deposit": "Dépôt",
+      "escrow_lock": "Blocage en séquestre",
+      "escrow_release": "Libération de séquestre",
+      "refund": "Remboursement",
+      "withdrawal": "Retrait",
+      "platform_fee": "Frais de plateforme"
+    },
+    "status": {
+      "pending": "En attente",
+      "completed": "Terminé",
+      "failed": "Échoué",
+      "reversed": "Annulé"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "Nouveau message",
+    "typeMessage": "Écrire un message...",
+    "send": "Envoyer",
+    "noMessages": "Aucun message pour l'instant",
+    "startConversation": "Démarrer une conversation",
+    "attachFile": "Joindre un fichier",
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "lastSeen": "Vu(e) {{time}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification",
+    "types": {
+      "new_proposal": "Nouvelle proposition sur votre projet",
+      "proposal_accepted": "Votre proposition a été acceptée",
+      "proposal_rejected": "Votre proposition a été refusée",
+      "contract_started": "Un nouveau contrat a démarré",
+      "milestone_submitted": "Une étape a été livrée pour révision",
+      "milestone_approved": "Une étape a été approuvée",
+      "payment_released": "Un paiement a été libéré",
+      "new_message": "Nouveau message de {{name}}",
+      "review_received": "Nouvel avis reçu",
+      "dispute_opened": "Un litige a été ouvert",
+      "dispute_resolved": "Un litige a été résolu"
+    }
+  },
+  "admin": {
+    "title": "Administration Freelance DZ",
+    "overview": "Vue d'ensemble",
+    "users": "Utilisateurs",
+    "jobs": "Projets",
+    "contracts": "Contrats",
+    "transactions": "Transactions",
+    "disputes": "Litiges",
+    "settings": "Paramètres",
+    "stats": {
+      "totalUsers": "Utilisateurs totaux",
+      "newUsers30d": "Nouveaux utilisateurs (30j)",
+      "activeJobs": "Projets actifs",
+      "activeContracts": "Contrats actifs",
+      "totalEscrowed": "Total en séquestre",
+      "feesCollected": "Frais collectés",
+      "openDisputes": "Litiges ouverts",
+      "bannedUsers": "Utilisateurs bannis"
+    },
+    "actions": {
+      "banUser": "Bannir l'utilisateur",
+      "unbanUser": "Débannir l'utilisateur",
+      "verifyUser": "Vérifier l'utilisateur",
+      "resolveDispute": "Résoudre le litige",
+      "featureJob": "Mettre en avant le projet",
+      "cancelContract": "Annuler le contrat"
+    }
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "notFound": "Page introuvable",
+    "unauthorized": "Accès non autorisé",
+    "forbidden": "Accès interdit",
+    "serverError": "Erreur serveur",
+    "networkError": "Erreur de connexion",
+    "sessionExpired": "Session expirée. Veuillez vous reconnecter."
+  }
+}

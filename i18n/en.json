@@ -1,0 +1,317 @@
+{
+  "_meta": {
+    "dir": "ltr",
+    "lang": "en",
+    "locale": "en-DZ"
+  },
+  "common": {
+    "appName": "Freelance DZ",
+    "tagline": "Algeria's Premier Freelance Marketplace",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "back": "Back",
+    "next": "Next",
+    "prev": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "confirm": "Confirm",
+    "close": "Close",
+    "seeAll": "See All",
+    "noResults": "No results found",
+    "currency": "DZD",
+    "required": "Required",
+    "optional": "Optional",
+    "or": "or",
+    "and": "and"
+  },
+  "auth": {
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "register": "Create Account",
+    "email": "Email Address",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset Password",
+    "username": "Username",
+    "fullName": "Full Name",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "loginSuccess": "Successfully signed in",
+    "logoutSuccess": "Successfully signed out",
+    "registerSuccess": "Account created successfully",
+    "errors": {
+      "invalidEmail": "Invalid email address",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "Passwords do not match",
+      "emailInUse": "Email is already in use",
+      "invalidCredentials": "Invalid credentials",
+      "userBanned": "This account has been suspended"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "jobs": "Projects",
+    "freelancers": "Freelancers",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "dashboard": "Dashboard",
+    "wallet": "Wallet",
+    "settings": "Settings",
+    "help": "Help",
+    "admin": "Admin Panel"
+  },
+  "roles": {
+    "client": "Client",
+    "freelancer": "Freelancer",
+    "both": "Both",
+    "switchToClient": "Switch to Client Mode",
+    "switchToFreelancer": "Switch to Freelancer Mode",
+    "currentRole": "Current Mode"
+  },
+  "profile": {
+    "title": "Profile",
+    "bio": "Bio",
+    "skills": "Skills",
+    "hourlyRate": "Hourly Rate",
+    "wilaya": "Wilaya",
+    "phone": "Phone",
+    "website": "Website",
+    "rating": "Rating",
+    "reviews": "Reviews",
+    "memberSince": "Member since",
+    "verified": "Verified",
+    "completedJobs": "Completed Jobs",
+    "portfolio": "Portfolio",
+    "uploadAvatar": "Upload Photo",
+    "editProfile": "Edit Profile",
+    "publicProfile": "Public Profile"
+  },
+  "jobs": {
+    "title": "Projects",
+    "postJob": "Post a Project",
+    "editJob": "Edit Project",
+    "jobTitle": "Project Title",
+    "description": "Description",
+    "category": "Category",
+    "requiredSkills": "Required Skills",
+    "budget": "Budget",
+    "budgetMin": "Minimum",
+    "budgetMax": "Maximum",
+    "deadline": "Deadline",
+    "proposals": "Proposals",
+    "proposalsCount": "{{count}} proposal(s)",
+    "noProposals": "No proposals yet",
+    "views": "views",
+    "postedBy": "Posted by",
+    "postedAgo": "{{time}} ago",
+    "status": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "disputed": "Disputed"
+    },
+    "categories": {
+      "development": "Development",
+      "design": "Design",
+      "marketing": "Marketing",
+      "writing": "Writing",
+      "translation": "Translation",
+      "data": "Data",
+      "business": "Business",
+      "other": "Other"
+    },
+    "errors": {
+      "titleRequired": "Project title is required",
+      "descriptionRequired": "Description is required",
+      "budgetInvalid": "Invalid budget range"
+    },
+    "filters": {
+      "all": "All",
+      "byCategory": "By Category",
+      "byBudget": "By Budget",
+      "byDate": "By Date",
+      "newest": "Newest",
+      "oldest": "Oldest",
+      "highestBudget": "Highest Budget",
+      "lowestBudget": "Lowest Budget"
+    }
+  },
+  "proposals": {
+    "title": "Proposals",
+    "submitProposal": "Submit Proposal",
+    "coverLetter": "Cover Letter",
+    "bidAmount": "Bid Amount",
+    "deliveryDays": "Delivery Time (days)",
+    "milestones": "Milestones",
+    "addMilestone": "Add Milestone",
+    "milestoneName": "Milestone Name",
+    "milestoneAmount": "Milestone Amount",
+    "milestoneDueDate": "Due Date",
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
+    },
+    "accept": "Accept Proposal",
+    "reject": "Reject Proposal",
+    "withdraw": "Withdraw Proposal",
+    "errors": {
+      "alreadySubmitted": "You have already submitted a proposal for this project",
+      "jobClosed": "This project is no longer accepting proposals"
+    }
+  },
+  "contracts": {
+    "title": "Contracts",
+    "activeContracts": "Active Contracts",
+    "completedContracts": "Completed Contracts",
+    "contractDetails": "Contract Details",
+    "totalAmount": "Total Amount",
+    "platformFee": "Platform Fee (5%)",
+    "netAmount": "Net Amount",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "milestones": {
+      "title": "Milestones",
+      "status": {
+        "pending": "Pending",
+        "in_progress": "In Progress",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "disputed": "Disputed"
+      },
+      "lockFunds": "Lock Funds for Milestone",
+      "submitWork": "Submit Work",
+      "approveWork": "Approve Work",
+      "requestRevision": "Request Revision",
+      "fundsLocked": "Funds locked in escrow"
+    },
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "disputed": "Disputed",
+      "cancelled": "Cancelled"
+    }
+  },
+  "escrow": {
+    "title": "Escrow System",
+    "description": "Your funds are protected until the project is successfully completed",
+    "locked": "Locked in Escrow",
+    "released": "Released",
+    "total": "Total",
+    "howItWorks": "How Escrow Works",
+    "step1": "Client deposits funds",
+    "step2": "Freelancer completes the work",
+    "step3": "Client reviews and approves",
+    "step4": "Funds are released to freelancer"
+  },
+  "wallet": {
+    "title": "Wallet",
+    "balance": "Available Balance",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "history": "Transaction History",
+    "depositAmount": "Deposit Amount",
+    "withdrawAmount": "Withdrawal Amount",
+    "paymentMethod": "Payment Method",
+    "methods": {
+      "ccp": "CCP Account",
+      "baridimob": "BaridiMob",
+      "cib": "CIB Card",
+      "cash": "Cash Payment"
+    },
+    "transactions": {
+      "deposit": "Deposit",
+      "escrow_lock": "Escrow Lock",
+      "escrow_release": "Escrow Release",
+      "refund": "Refund",
+      "withdrawal": "Withdrawal",
+      "platform_fee": "Platform Fee"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "failed": "Failed",
+      "reversed": "Reversed"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "New Message",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "noMessages": "No messages yet",
+    "startConversation": "Start a conversation",
+    "attachFile": "Attach file",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last seen {{time}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "types": {
+      "new_proposal": "New proposal on your project",
+      "proposal_accepted": "Your proposal was accepted",
+      "proposal_rejected": "Your proposal was rejected",
+      "contract_started": "A new contract has started",
+      "milestone_submitted": "A milestone was submitted for review",
+      "milestone_approved": "A milestone was approved",
+      "payment_released": "A payment has been released",
+      "new_message": "New message from {{name}}",
+      "review_received": "You received a new review",
+      "dispute_opened": "A dispute has been opened",
+      "dispute_resolved": "A dispute has been resolved"
+    }
+  },
+  "admin": {
+    "title": "Freelance DZ Admin",
+    "overview": "Overview",
+    "users": "Users",
+    "jobs": "Projects",
+    "contracts": "Contracts",
+    "transactions": "Transactions",
+    "disputes": "Disputes",
+    "settings": "Platform Settings",
+    "stats": {
+      "totalUsers": "Total Users",
+      "newUsers30d": "New Users (30d)",
+      "activeJobs": "Active Projects",
+      "activeContracts": "Active Contracts",
+      "totalEscrowed": "Total Escrowed",
+      "feesCollected": "Fees Collected",
+      "openDisputes": "Open Disputes",
+      "bannedUsers": "Banned Users"
+    },
+    "actions": {
+      "banUser": "Ban User",
+      "unbanUser": "Unban User",
+      "verifyUser": "Verify User",
+      "resolveDispute": "Resolve Dispute",
+      "featureJob": "Feature Project",
+      "cancelContract": "Cancel Contract"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "Page not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "serverError": "Server error",
+    "networkError": "Network connection error",
+    "sessionExpired": "Session expired. Please sign in again."
+  }
+}
