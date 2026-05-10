@@ -3,8 +3,7 @@
 import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
-
+import { supabase } from '@/lib/supabase'
 type Role = 'client' | 'freelancer'
 
 function RegisterForm() {
