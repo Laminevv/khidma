@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 type Role = 'client' | 'freelancer'
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultRole = (searchParams.get('role') as Role) || 'client'
@@ -26,8 +26,8 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
 
-    if (password.length < 8) {
-      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+    if (password.length < 6) {
+      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
       setLoading(false)
       return
     }
@@ -49,15 +49,24 @@ export default function RegisterPage() {
       if (error.message.includes('already registered')) {
         setError('هذا البريد الإلكتروني مسجّل مسبقاً')
       } else {
-        setError('حدث خطأ، يرجى المحاولة مرة أخرى')
+        setError(error.message)
       }
       setLoading(false)
       return
     }
 
-    setSuccess(true)
-    setLoading(false)
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+    
+    if (loginError) {
+      setSuccess(true)
+      setLoading(false)
+      return
+    }
+
+    router.push('/dashboard')
   }
+
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
 
   if (success) {
     return (
@@ -71,7 +80,7 @@ export default function RegisterPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">تم إنشاء حسابك!</h2>
           <p className="text-gray-500 text-sm mb-6">
-            تحقق من بريدك الإلكتروني <strong>{email}</strong> وانقر على رابط التفعيل
+            تحقق من بريدك الإلكتروني وانقر على رابط التفعيل
           </p>
           <Link href="/auth/login"
             className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors inline-block">
@@ -85,8 +94,6 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12" dir="rtl">
       <div className="w-full max-w-md">
-
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center">
@@ -102,122 +109,67 @@ export default function RegisterPage() {
           <p className="text-gray-500 mt-1 text-sm">انضم لمنصة العمل الحر الجزائرية</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-
-          {/* Role selector */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <button
-              type="button"
-              onClick={() => setRole('client')}
+            <button type="button" onClick={() => setRole('client')}
               className={`p-4 rounded-xl border-2 text-center transition-all ${
-                role === 'client'
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-gray-100 hover:border-gray-200'
-              }`}
-            >
+                role === 'client' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
+              }`}>
               <div className="text-2xl mb-1">💼</div>
-              <div className={`text-sm font-medium ${role === 'client' ? 'text-emerald-700' : 'text-gray-700'}`}>
-                صاحب عمل
-              </div>
+              <div className={`text-sm font-medium ${role === 'client' ? 'text-emerald-700' : 'text-gray-700'}`}>صاحب عمل</div>
               <div className="text-xs text-gray-400 mt-0.5">أبحث عن مستقلين</div>
             </button>
-            <button
-              type="button"
-              onClick={() => setRole('freelancer')}
+            <button type="button" onClick={() => setRole('freelancer')}
               className={`p-4 rounded-xl border-2 text-center transition-all ${
-                role === 'freelancer'
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-gray-100 hover:border-gray-200'
-              }`}
-            >
+                role === 'freelancer' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
+              }`}>
               <div className="text-2xl mb-1">🧑‍💻</div>
-              <div className={`text-sm font-medium ${role === 'freelancer' ? 'text-emerald-700' : 'text-gray-700'}`}>
-                مستقل
-              </div>
+              <div className={`text-sm font-medium ${role === 'freelancer' ? 'text-emerald-700' : 'text-gray-700'}`}>مستقل</div>
               <div className="text-xs text-gray-400 mt-0.5">أقدم خدماتي</div>
             </button>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
-
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}
               </div>
             )}
 
-            {/* Full name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">الاسم الكامل</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="محمد أمين"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
-              />
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                placeholder="محمد أمين" required className={inputClass} style={{ color: '#111827' }} />
             </div>
 
-            {/* Username */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم المستخدم</label>
-              <input
-                type="text"
-                value={username}
+              <input type="text" value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase())}
-                placeholder="mohammed_amine"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
-                dir="ltr"
-              />
+                placeholder="mohammed_amine" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
               <p className="text-xs text-gray-400 mt-1">حروف إنجليزية وأرقام فقط</p>
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">البريد الإلكتروني</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@gmail.com"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
-                dir="ltr"
-              />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@gmail.com" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="8 أحرف على الأقل"
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
-                dir="ltr"
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="6 أحرف على الأقل" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2">
               {loading ? (
-                <>
-                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  جارٍ إنشاء الحساب...
-                </>
-              ) : 'إنشاء الحساب'}
+                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+              ) : null}
+              {loading ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب'}
             </button>
 
             <p className="text-xs text-gray-400 text-center">
@@ -226,7 +178,6 @@ export default function RegisterPage() {
               {' '}و{' '}
               <Link href="#" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
             </p>
-
           </form>
         </div>
 
@@ -236,8 +187,19 @@ export default function RegisterPage() {
             تسجيل الدخول
           </Link>
         </p>
-
       </div>
     </main>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   )
 }
