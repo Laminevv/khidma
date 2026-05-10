@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
-
+import { supabase } from '@/lib/supabase'
 interface Stats {
   total_users: number
   new_users_30d: number
