@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -39,7 +39,7 @@ function timeAgo(date: string) {
   return `${Math.floor(hours / 24)}ي`
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const targetUserId = searchParams.get('user')
@@ -62,13 +62,11 @@ export default function MessagesPage() {
 
       const convs = await fetchConversations(user.id)
 
-      // إذا في user في الـ URL افتح محادثته مباشرة
       if (targetUserId) {
         const existing = convs.find((c: Conversation) => c.other_user_id === targetUserId)
         if (existing) {
           openConversation(existing, user)
         } else {
-          // مستخدم جديد — جلب بياناته وافتح محادثة فارغة
           const { data: profile } = await supabase
             .from('profiles')
             .select('id, username, full_name')
@@ -180,14 +178,13 @@ export default function MessagesPage() {
 
     const roomId = getRoomId(currentUser.id, activeConv.other_user_id)
 
-    const { data: sent } = await supabase.from('messages').insert({
+    await supabase.from('messages').insert({
       room_id: roomId,
       sender_id: currentUser.id,
       receiver_id: activeConv.other_user_id,
       content: newMessage.trim(),
     }).select().single()
 
-    // تحديث آخر رسالة في المحادثة
     setConversations(prev => prev.map(c =>
       c.other_user_id === activeConv.other_user_id
         ? { ...c, last_message: newMessage.trim(), last_sent_at: new Date().toISOString() }
@@ -213,7 +210,6 @@ export default function MessagesPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col" dir="rtl">
-
       <nav className="bg-white border-b border-gray-100 z-50 flex-shrink-0">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -229,8 +225,6 @@ export default function MessagesPage() {
       </nav>
 
       <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-6 py-4 gap-4">
-
-        {/* Conversations list */}
         <div className="w-72 flex-shrink-0 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">الرسائل</h2>
@@ -240,17 +234,13 @@ export default function MessagesPage() {
               <div className="text-center py-12 px-4">
                 <div className="text-3xl mb-2">💬</div>
                 <p className="text-gray-400 text-sm">لا توجد محادثات بعد</p>
-                <p className="text-gray-300 text-xs mt-1">قدّم عرضاً على مشروع لتبدأ</p>
               </div>
             ) : (
               conversations.map((conv) => (
-                <button
-                  key={conv.other_user_id}
-                  onClick={() => openConversation(conv)}
+                <button key={conv.other_user_id} onClick={() => openConversation(conv)}
                   className={`w-full text-right flex items-center gap-3 p-4 hover:bg-gray-50 transition-all border-b border-gray-50 ${
                     activeConv?.other_user_id === conv.other_user_id ? 'bg-emerald-50' : ''
-                  }`}
-                >
+                  }`}>
                   <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                     {conv.other_full_name?.charAt(0) || '؟'}
                   </div>
@@ -274,14 +264,12 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Chat window */}
         <div className="flex-1 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden">
           {!activeConv ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
                 <div className="text-5xl mb-4">💬</div>
                 <p className="text-gray-500 font-medium">اختر محادثة للبدء</p>
-                <p className="text-gray-300 text-sm mt-1">أو قدّم عرضاً على مشروع</p>
               </div>
             </div>
           ) : (
@@ -324,20 +312,14 @@ export default function MessagesPage() {
 
               <div className="p-4 border-t border-gray-100">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={newMessage}
+                  <input type="text" value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                     placeholder="اكتب رسالة..."
                     className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={!newMessage.trim() || sending}
-                    className="w-11 h-11 bg-emerald-500 text-white rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-colors disabled:opacity-50 flex-shrink-0"
-                  >
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }} />
+                  <button onClick={sendMessage} disabled={!newMessage.trim() || sending}
+                    className="w-11 h-11 bg-emerald-500 text-white rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-colors disabled:opacity-50 flex-shrink-0">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
@@ -349,5 +331,17 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <MessagesContent />
+    </Suspense>
   )
 }
