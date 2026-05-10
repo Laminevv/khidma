@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -13,6 +13,8 @@ interface Milestone {
   status: 'pending' | 'in_progress' | 'submitted' | 'approved'
   due_date?: string
   approved_at?: string
+  delivery_files?: string[]
+  delivery_note?: string
 }
 
 interface Contract {
@@ -58,6 +60,11 @@ export default function ContractDetailPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [showDeliveryModal, setShowDeliveryModal] = useState<Milestone | null>(null)
+  const [deliveryNote, setDeliveryNote] = useState('')
+  const [deliveryFiles, setDeliveryFiles] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -73,12 +80,7 @@ export default function ContractDetailPage() {
   const fetchContract = async () => {
     const { data } = await supabase
       .from('contracts')
-      .select(`
-        *,
-        client:profiles!client_id(id, username, full_name, balance),
-        freelancer:profiles!freelancer_id(id, username, full_name, balance),
-        jobs(id, title)
-      `)
+      .select(`*, client:profiles!client_id(id, username, full_name, balance), freelancer:profiles!freelancer_id(id, username, full_name, balance), jobs(id, title)`)
       .eq('id', id)
       .single()
     setContract(data)
@@ -94,7 +96,6 @@ export default function ContractDetailPage() {
     if (!contract) return
     setActionLoading(milestone.id)
 
-    // تحقق من الرصيد
     const { data: profile } = await supabase
       .from('profiles').select('balance').eq('id', userId!).single()
 
@@ -104,12 +105,10 @@ export default function ContractDetailPage() {
       return
     }
 
-    // خصم من رصيد صاحب العمل
     await supabase.from('profiles')
       .update({ balance: (profile?.balance || 0) - milestone.amount })
       .eq('id', userId!)
 
-    // تسجيل معاملة
     await supabase.from('transactions').insert({
       contract_id: contract.id,
       from_user_id: userId,
@@ -120,34 +119,47 @@ export default function ContractDetailPage() {
       note: `تأمين مرحلة: ${milestone.title}`,
     })
 
-    // تحديث حالة المرحلة
     const updatedMilestones = contract.milestones.map(m =>
       m.id === milestone.id ? { ...m, status: 'in_progress' } : m
     )
-    await supabase.from('contracts')
-      .update({ milestones: updatedMilestones })
-      .eq('id', contract.id)
-
+    await supabase.from('contracts').update({ milestones: updatedMilestones }).eq('id', contract.id)
     setContract({ ...contract, milestones: updatedMilestones as Milestone[] })
     showToast(`✅ تم تأمين ${milestone.amount.toLocaleString()} دج للمرحلة`)
     setActionLoading(null)
   }
 
-  // المستقل — تسليم العمل
-  const submitWork = async (milestone: Milestone) => {
-    if (!contract) return
-    setActionLoading(milestone.id)
+  // المستقل — تسليم العمل مع رفع ملفات
+  const submitWork = async () => {
+    if (!contract || !showDeliveryModal) return
+    setUploading(true)
+
+    const uploadedUrls: string[] = []
+
+    // رفع الملفات إلى Supabase Storage
+    for (const file of deliveryFiles) {
+      const fileName = `${contract.id}/${showDeliveryModal.id}/${Date.now()}_${file.name}`
+      const { data, error } = await supabase.storage
+        .from('deliverables')
+        .upload(fileName, file)
+
+      if (!error && data) {
+        uploadedUrls.push(data.path)
+      }
+    }
 
     const updatedMilestones = contract.milestones.map(m =>
-      m.id === milestone.id ? { ...m, status: 'submitted' } : m
+      m.id === showDeliveryModal.id
+        ? { ...m, status: 'submitted', delivery_files: uploadedUrls, delivery_note: deliveryNote }
+        : m
     )
-    await supabase.from('contracts')
-      .update({ milestones: updatedMilestones })
-      .eq('id', contract.id)
 
+    await supabase.from('contracts').update({ milestones: updatedMilestones }).eq('id', contract.id)
     setContract({ ...contract, milestones: updatedMilestones as Milestone[] })
     showToast('✅ تم إرسال العمل للمراجعة')
-    setActionLoading(null)
+    setShowDeliveryModal(null)
+    setDeliveryNote('')
+    setDeliveryFiles([])
+    setUploading(false)
   }
 
   // صاحب العمل — الموافقة وتحرير الدفعة
@@ -159,7 +171,6 @@ export default function ContractDetailPage() {
     const fee = Math.round(milestone.amount * FEE_PCT)
     const net = milestone.amount - fee
 
-    // إضافة للمستقل
     const { data: freelancerProfile } = await supabase
       .from('profiles').select('balance').eq('id', contract.freelancer_id).single()
 
@@ -167,7 +178,6 @@ export default function ContractDetailPage() {
       .update({ balance: (freelancerProfile?.balance || 0) + net })
       .eq('id', contract.freelancer_id)
 
-    // تسجيل معاملة
     await supabase.from('transactions').insert({
       contract_id: contract.id,
       from_user_id: userId,
@@ -180,14 +190,9 @@ export default function ContractDetailPage() {
       note: `تحرير دفعة: ${milestone.title}`,
     })
 
-    // تحديث المرحلة
     const updatedMilestones = contract.milestones.map(m =>
-      m.id === milestone.id
-        ? { ...m, status: 'approved', approved_at: new Date().toISOString() }
-        : m
+      m.id === milestone.id ? { ...m, status: 'approved', approved_at: new Date().toISOString() } : m
     )
-
-    // تحقق إذا كل المراحل مكتملة
     const allDone = updatedMilestones.every(m => m.status === 'approved')
 
     await supabase.from('contracts').update({
@@ -195,13 +200,8 @@ export default function ContractDetailPage() {
       ...(allDone ? { status: 'completed' } : {}),
     }).eq('id', contract.id)
 
-    setContract({
-      ...contract,
-      milestones: updatedMilestones as Milestone[],
-      status: allDone ? 'completed' : contract.status,
-    })
-
-    showToast(`✅ تم تحرير ${net.toLocaleString()} دج للمستقل (بعد رسوم المنصة 5%)`)
+    setContract({ ...contract, milestones: updatedMilestones as Milestone[], status: allDone ? 'completed' : contract.status })
+    showToast(`✅ تم تحرير ${net.toLocaleString()} دج للمستقل (بعد رسوم 5%)`)
     setActionLoading(null)
   }
 
@@ -235,10 +235,82 @@ export default function ContractDetailPage() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl text-sm font-medium shadow-lg transition-all ${
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl text-sm font-medium shadow-lg ${
           toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
         }`}>
           {toast.msg}
+        </div>
+      )}
+
+      {/* Delivery Modal */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md" dir="rtl">
+            <h3 className="font-bold text-gray-900 text-lg mb-4">تسليم العمل — {showDeliveryModal.title}</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات التسليم</label>
+              <textarea
+                value={deliveryNote}
+                onChange={(e) => setDeliveryNote(e.target.value)}
+                placeholder="اشرح ما أنجزته، أي تفاصيل مهمة..."
+                rows={4}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 resize-none"
+                style={{ color: '#111827' }}
+              />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">رفع الملفات (اختياري)</label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-all"
+              >
+                <div className="text-2xl mb-2">📁</div>
+                <p className="text-sm text-gray-500">اضغط لرفع الملفات</p>
+                <p className="text-xs text-gray-400 mt-1">PDF, ZIP, PNG, JPG — حتى 50MB</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => setDeliveryFiles(Array.from(e.target.files || []))}
+              />
+              {deliveryFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {deliveryFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+                      <span>📄</span>
+                      <span className="truncate">{f.name}</span>
+                      <span className="text-xs text-gray-400 mr-auto">({(f.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={submitWork}
+                disabled={uploading || !deliveryNote.trim()}
+                className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {uploading ? (
+                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                ) : '📤'}
+                {uploading ? 'جارٍ الرفع...' : 'إرسال التسليم'}
+              </button>
+              <button
+                onClick={() => { setShowDeliveryModal(null); setDeliveryNote(''); setDeliveryFiles([]) }}
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -259,16 +331,13 @@ export default function ContractDetailPage() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="grid grid-cols-3 gap-6">
 
-          {/* Main */}
           <div className="col-span-2 space-y-6">
 
-            {/* Header */}
             <div className="bg-white rounded-2xl border border-gray-100 p-7">
               <div className="flex items-center gap-2 mb-3">
                 <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${
                   contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                  contract.status === 'completed' ? 'bg-gray-100 text-gray-600' :
-                  'bg-yellow-50 text-yellow-700'
+                  contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-50 text-yellow-700'
                 }`}>
                   {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status}
                 </span>
@@ -278,49 +347,34 @@ export default function ContractDetailPage() {
                   </Link>
                 )}
               </div>
-
               <h1 className="text-xl font-bold text-gray-900 mb-4">{contract.title}</h1>
-
-              {/* Progress */}
               {totalMilestones > 0 && (
-                <div className="mb-4">
+                <div>
                   <div className="flex justify-between text-xs text-gray-500 mb-2">
                     <span>التقدم الإجمالي</span>
-                    <span>{completedMilestones}/{totalMilestones} مراحل مكتملة</span>
+                    <span>{completedMilestones}/{totalMilestones} مراحل</span>
                   </div>
                   <div className="bg-gray-100 rounded-full h-2">
-                    <div
-                      className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    />
+                    <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Milestones */}
             <div className="bg-white rounded-2xl border border-gray-100 p-7">
               <h2 className="font-semibold text-gray-900 mb-5">مراحل التنفيذ والضمان</h2>
-
               {!contract.milestones || contract.milestones.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-3xl mb-2">📋</div>
-                  <p className="text-gray-400 text-sm">لا توجد مراحل محددة لهذا العقد</p>
+                  <p className="text-gray-400 text-sm">لا توجد مراحل</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {contract.milestones.map((milestone, index) => (
-                    <div key={milestone.id}
-                      className={`border rounded-2xl p-5 transition-all ${
-                        milestone.status === 'approved'
-                          ? 'border-emerald-200 bg-emerald-50/30'
-                          : milestone.status === 'submitted'
-                          ? 'border-blue-200 bg-blue-50/20'
-                          : milestone.status === 'in_progress'
-                          ? 'border-yellow-200 bg-yellow-50/20'
-                          : 'border-gray-100'
-                      }`}>
-
+                    <div key={milestone.id} className={`border rounded-2xl p-5 transition-all ${
+                      milestone.status === 'approved' ? 'border-emerald-200 bg-emerald-50/30' :
+                      milestone.status === 'submitted' ? 'border-blue-200 bg-blue-50/20' :
+                      milestone.status === 'in_progress' ? 'border-yellow-200 bg-yellow-50/20' : 'border-gray-100'
+                    }`}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -332,9 +386,7 @@ export default function ContractDetailPage() {
                           </div>
                           <div>
                             <h3 className="font-medium text-gray-900">{milestone.title}</h3>
-                            {milestone.description && (
-                              <p className="text-xs text-gray-500 mt-0.5">{milestone.description}</p>
-                            )}
+                            {milestone.description && <p className="text-xs text-gray-500 mt-0.5">{milestone.description}</p>}
                           </div>
                         </div>
                         <div className="text-left">
@@ -345,53 +397,52 @@ export default function ContractDetailPage() {
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex gap-2 mt-3">
+                      {/* ملاحظات التسليم */}
+                      {milestone.delivery_note && (
+                        <div className="bg-blue-50 rounded-xl p-3 mb-3">
+                          <p className="text-xs text-blue-700 font-medium mb-1">ملاحظات التسليم:</p>
+                          <p className="text-sm text-blue-600">{milestone.delivery_note}</p>
+                          {milestone.delivery_files && milestone.delivery_files.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {milestone.delivery_files.map((file, i) => (
+                                <button
+                                  key={i}
+                                  onClick={async () => {
+                                    const { data } = await supabase.storage.from('deliverables').createSignedUrl(file, 3600)
+                                    if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+                                  }}
+                                  className="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1 rounded-lg hover:bg-blue-50"
+                                >
+                                  📄 تحميل الملف {i + 1}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                        {/* صاحب العمل — تأمين الأموال */}
+                      <div className="flex gap-2 mt-3">
                         {isClient && milestone.status === 'pending' && (
-                          <button
-                            onClick={() => lockFunds(milestone)}
-                            disabled={actionLoading === milestone.id}
-                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60"
-                          >
-                            {actionLoading === milestone.id ? (
-                              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                              </svg>
-                            ) : '🔒'}
+                          <button onClick={() => lockFunds(milestone)} disabled={actionLoading === milestone.id}
+                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60">
+                            {actionLoading === milestone.id ? <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> : '🔒'}
                             تأمين الأموال
                           </button>
                         )}
-
-                        {/* المستقل — تسليم العمل */}
                         {isFreelancer && milestone.status === 'in_progress' && (
-                          <button
-                            onClick={() => submitWork(milestone)}
-                            disabled={actionLoading === milestone.id}
-                            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-60"
-                          >
-                            {actionLoading === milestone.id ? '...' : '📤'}
-                            تسليم العمل
+                          <button onClick={() => setShowDeliveryModal(milestone)}
+                            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors">
+                            📤 تسليم العمل
                           </button>
                         )}
-
-                        {/* صاحب العمل — الموافقة وتحرير الدفعة */}
                         {isClient && milestone.status === 'submitted' && (
-                          <button
-                            onClick={() => approveAndRelease(milestone)}
-                            disabled={actionLoading === milestone.id}
-                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60"
-                          >
-                            {actionLoading === milestone.id ? '...' : '✅'}
-                            الموافقة وتحرير الدفعة
+                          <button onClick={() => approveAndRelease(milestone)} disabled={actionLoading === milestone.id}
+                            className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60">
+                            {actionLoading === milestone.id ? '...' : '✅'} الموافقة وتحرير الدفعة
                           </button>
                         )}
-
                         {milestone.status === 'approved' && milestone.approved_at && (
-                          <span className="text-xs text-emerald-600">
-                            تم الاعتماد {new Date(milestone.approved_at).toLocaleDateString('ar-DZ')}
-                          </span>
+                          <span className="text-xs text-emerald-600">تم الاعتماد {new Date(milestone.approved_at).toLocaleDateString('ar-DZ')}</span>
                         )}
                       </div>
                     </div>
@@ -401,10 +452,7 @@ export default function ContractDetailPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
-
-            {/* Summary */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">ملخص العقد</h3>
               <div className="space-y-3">
@@ -423,7 +471,6 @@ export default function ContractDetailPage() {
               </div>
             </div>
 
-            {/* Parties */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">أطراف العقد</h3>
               <div className="space-y-3">
@@ -448,20 +495,16 @@ export default function ContractDetailPage() {
               </div>
             </div>
 
-            {/* Escrow info */}
             <div className="bg-emerald-500 rounded-2xl p-6 text-white">
               <div className="text-2xl mb-2">🔒</div>
               <h3 className="font-semibold mb-2">نظام الضمان</h3>
               <p className="text-emerald-100 text-xs leading-relaxed">
-                أموالك محمية — تُحجز عند بدء كل مرحلة وتُحرَّر فقط بعد موافقة صاحب العمل على التسليم
+                أموالك محمية — تُحجز عند بدء كل مرحلة وتُحرَّر فقط بعد موافقة صاحب العمل
               </p>
             </div>
 
-            {/* Message button */}
-            <Link
-              href={`/messages?user=${isClient ? contract.freelancer_id : contract.client_id}`}
-              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all"
-            >
+            <Link href={`/messages?user=${isClient ? contract.freelancer_id : contract.client_id}`}
+              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all">
               💬 مراسلة الطرف الآخر
             </Link>
           </div>
