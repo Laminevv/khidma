@@ -1,2 +1,8 @@
-const nextConfig = {};
-export default nextConfig;
+const nextConfig = {
+  output: 'standalone',
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+}
+
+export default nextConfig
