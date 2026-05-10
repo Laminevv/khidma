@@ -13,6 +13,7 @@ interface Profile {
   balance: number
   rating: number
   total_reviews: number
+  is_admin: boolean
 }
 
 interface Job {
@@ -97,10 +98,13 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href="/jobs" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">المشاريع</Link>
-            <Link href="/contracts" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">
-  العقود
-</Link>
+            <Link href="/contracts" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">العقود</Link>
             <Link href="/messages" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">الرسائل</Link>
+            {profile?.is_admin && (
+              <Link href="/admin" className="text-sm text-red-500 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50">
+                ⚙️ الإدارة
+              </Link>
+            )}
             <span className="flex items-center gap-2 text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
               <span>{isClient ? '💼' : '🧑‍💻'}</span>
               <span>{isClient ? 'صاحب عمل' : 'مستقل'}</span>
