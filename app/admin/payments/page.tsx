@@ -1,20 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import ClientPaymentsPage from './ClientPaymentsPage'
 
 export default async function AdminPaymentsPage() {
   const supabase = await createClient()
-  
-  // 1. Strict Server-Side Security Check
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  // Fetch admin status directly from the database using auth.uid() via the RPC
-  const { data: isAdmin } = await supabase.rpc('is_admin')
-
-  if (!isAdmin) {
-    redirect('/dashboard')
-  }
 
   // 2. Fetch Total Revenue
   const { data: overview } = await supabase
