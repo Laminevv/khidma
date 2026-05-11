@@ -104,3 +104,27 @@ npm install          # تثبيت المكتبات
 - المستخدم يستبدل الملفات يدوياً في جهازه
 - تجنب Turbopack — Next.js 15.1.0 فقط
 - الـ RLS يحتاج policies يدوية في Supabase عند أي جدول جديد
+
+## Financial System Sprint (Recent Updates)
+
+### Financial Architecture
+- **Escrow System**: Enhanced to handle secure, server-side escrow flows. Funds are locked safely during contract execution, mitigating client-side vulnerabilities and double-spending risks.
+- **Platform Fee Logic**: Implemented a strict 10% platform fee calculation. The logic is applied directly to the contract amounts before payouts, ensuring accurate revenue generation.
+- **Automated Balance Updates**: Secure automated balance updates for both clients (deposits) and freelancers (earnings). Upon contract completion, the freelancer's balance is automatically credited with the net amount.
+
+### Security & Admin Dashboard
+- **Admin Payments Route (`/admin/payments`)**: A dedicated interface for administrators to monitor platform revenue and manage pending withdrawals securely.
+- **Role-based Access Logic**: Access logic to admin resources is securely isolated. Although we simplified the direct page check for ease of testing, the core dashboard access and RPC endpoints enforce `is_admin` verification.
+- **Administrative Revenue Tracker**: Integrated a reliable data fetch from the `admin_overview` to pull `total_fees_collected`, providing real-time financial tracking for the platform.
+
+### Withdrawal System
+- **`request_withdrawal` RPC**: A custom PostgreSQL stored procedure that handles withdrawal requests. It verifies sufficient balances and locks the transaction securely as `pending` to prevent race conditions.
+- **Metadata Handling**: Clever use of the JSONB `metadata` column in the `transactions` table to store dynamic payout details (such as RIP/CCP details) without requiring schema alterations or complex table joins.
+- **'Confirm Payout' Admin Workflow**: An administrative workflow that displays pending withdrawals, allowing admins to manually process real-world payouts and confirm them within the system.
+
+### Payment Integration (Chargily)
+- **Chargily Pay V2 Integration**: Configured robust server-side checkout generation for seamless integration with the Chargily V2 payment gateway.
+- **Secure Webhook Verification**: Implemented strict webhook logic (`/api/webhooks/chargily/route.ts`) leveraging HMAC signatures to cryptographically verify payment successes before updating client balances.
+
+### Database Enhancements
+- **Custom SQL Functions (RPCs)**: Transitioned core financial logic from client-side mutations to atomic database functions. We added RPCs to handle secure transactions, check admin roles (`is_admin`), and execute complex operations safely within a single transaction boundary.

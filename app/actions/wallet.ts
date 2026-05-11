@@ -4,33 +4,43 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function requestWithdrawalAction(amount: number, payoutDetails: string) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  // 1. Verify Authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (!user || authError) {
-    return { success: false, error: 'Unauthorized' }
+    // 1. Verify Authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user || authError) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // 2. Strict Server-Side Validation
+    if (typeof amount !== 'number' || isNaN(amount) || amount < 10000) {
+      return { success: false, error: 'Minimum withdrawal amount is 10,000 DZD' }
+    }
+
+    if (!payoutDetails || typeof payoutDetails !== 'string' || payoutDetails.trim().length < 5) {
+      return { success: false, error: 'Invalid payout details' }
+    }
+
+    // 3. Call the secure RPC to prevent double spending
+    const { error: rpcError } = await supabase.rpc('request_withdrawal', {
+      p_amount: amount,
+      p_metadata: { payoutDetails: payoutDetails.trim() }
+    })
+
+    if (rpcError) {
+      console.error('Withdrawal RPC error:', rpcError.message)
+      // Provide a user-friendly message for the known balance error
+      if (rpcError.message.includes('Insufficient balance')) {
+        return { success: false, error: 'Insufficient balance for this withdrawal.' }
+      }
+      return { success: false, error: 'Failed to process withdrawal. Please try again.' }
+    }
+
+    revalidatePath('/dashboard')
+    return { success: true }
+  } catch (error) {
+    console.error('requestWithdrawalAction unexpected error:', error)
+    return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
-
-  // 2. Strict Server-Side Validation
-  if (amount < 10000) {
-    return { success: false, error: 'Minimum withdrawal amount is 10,000 DZD' }
-  }
-
-  if (!payoutDetails || payoutDetails.trim().length < 5) {
-    return { success: false, error: 'Invalid payout details' }
-  }
-
-  // 3. Call the secure RPC to prevent double spending
-  const { data, error } = await supabase.rpc('request_withdrawal', {
-    p_amount: amount,
-    p_metadata: { payoutDetails }
-  })
-
-  if (error) {
-    return { success: false, error: error.message }
-  }
-
-  revalidatePath('/dashboard')
-  return { success: true }
 }
