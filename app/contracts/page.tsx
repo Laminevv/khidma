@@ -79,7 +79,7 @@ export default function ContractsPage() {
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -92,8 +92,8 @@ export default function ContractsPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">عقودي</h1>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5 sm:mb-6">عقودي</h1>
 
         {contracts.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
@@ -113,8 +113,8 @@ export default function ContractsPage() {
 
               return (
                 <Link key={contract.id} href={`/contracts/${contract.id}`}
-                  className="block bg-white rounded-2xl border border-gray-100 p-6 hover:border-emerald-200 hover:shadow-sm transition-all group">
-                  <div className="flex items-start justify-between">
+                  className="block bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 hover:border-emerald-200 hover:shadow-sm transition-all group">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${statusColor(contract.status)}`}>
@@ -145,8 +145,8 @@ export default function ContractsPage() {
                       )}
                     </div>
 
-                    <div className="text-left mr-6">
-                      <div className="text-xl font-bold text-gray-900">
+                    <div className="text-left sm:mr-6">
+                      <div className="text-lg sm:text-xl font-bold text-gray-900">
                         {contract.total_amount?.toLocaleString()} دج
                       </div>
                       <div className="text-xs text-gray-400 mt-1">

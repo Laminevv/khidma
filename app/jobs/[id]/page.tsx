@@ -200,11 +200,11 @@ export default function JobDetailPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
 
           {/* Main */}
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
 
             {/* Job header */}
             <div className="bg-white rounded-2xl border border-gray-100 p-7">

@@ -83,10 +83,11 @@ khidma2/
 9. **Public Profiles** — صفحة عامة للمستقل مع المشاريع المكتملة والتقييمات
 10. **Reviews & Ratings** — نظام تقييم 1-5 نجوم + تعليق عند إكمال العقد
 11. **Notifications** — إشعارات فورية + جرس + عداد غير مقروء + تنبيهات أحداث تلقائية
+12. **Mobile Optimization** — واجهة مستخدم متجاوبة مع الهواتف الذكية (قائمة همبرغر، جداول قابلة للتمرير، الخ)
 
 ## ما تبقى ⏳
 - Deploy على Vercel
-- تحسينات UI/UX
+- ~~تحسينات UI/UX (الهواتف)~~ ✅ تم
 - ~~صفحة Profile للمستقل~~ ✅ تم
 - ~~نظام التقييمات (Reviews)~~ ✅ تم
 - ~~نظام الإشعارات (Notifications)~~ ✅ تم
@@ -247,3 +248,22 @@ BEGIN
 END;
 $$;
 ```
+
+## Mobile UI Optimization Sprint
+
+### Architecture & Fixes
+- **Dashboard (`app/dashboard/page.tsx`)**:
+  - Implemented a hidden hamburger menu (`mobileMenuOpen` state) for mobile screens.
+  - Collapsed `grid-cols-4` stats and `grid-cols-3` content areas to stack vertically (`flex-col` or `grid-cols-2 sm:grid-cols-4`) on small screens.
+- **Jobs & Contracts Lists (`app/jobs/page.tsx`, `app/contracts/page.tsx`)**:
+  - Hid sidebar filters on mobile by default with a "فلترة المشاريع" toggle button.
+  - Updated card layouts to stack title/info and budget dynamically (`flex-col sm:flex-row`).
+- **Data Tables (`app/admin/payments/ClientPaymentsPage.tsx`)**:
+  - Wrapped large tables in `<div className="overflow-x-auto">` to prevent horizontal overflow on the whole screen.
+  - Kept a `min-w-[640px]` on the table itself so columns don't squish.
+- **Messages (`app/messages/page.tsx`)**:
+  - Hid the conversation list when an active chat is open on mobile.
+  - Added a "back arrow" button inside the active chat view to return to the list on mobile screens.
+- **Design Tokens**:
+  - Strictly maintained the Green (`emerald-500`) and White (`bg-white` / `bg-gray-50`) palette.
+  - Replaced hard-coded `px-6` with responsive `px-4 sm:px-6` across container elements.

@@ -60,6 +60,7 @@ export default function JobsPage() {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('newest')
   const [user, setUser] = useState<any>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
@@ -102,7 +103,7 @@ export default function JobsPage() {
 
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -135,10 +136,10 @@ export default function JobsPage() {
       </nav>
 
       {/* Hero */}
-      <div className="bg-white border-b border-gray-100 py-10">
-        <div className="max-w-6xl mx-auto px-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">تصفح المشاريع</h1>
-          <p className="text-gray-500 text-sm mb-6">اعثر على المشروع المناسب لمهاراتك</p>
+      <div className="bg-white border-b border-gray-100 py-6 sm:py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">تصفح المشاريع</h1>
+          <p className="text-gray-500 text-sm mb-4 sm:mb-6">اعثر على المشروع المناسب لمهاراتك</p>
 
           {/* Search */}
           <div className="relative max-w-xl">
@@ -157,11 +158,21 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-6">
-        <div className="flex gap-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+
+        {/* Mobile filter toggle */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="lg:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50 mb-4"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          {showFilters ? 'إخفاء الفلاتر' : 'فلترة المشاريع'}
+        </button>
+
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
 
           {/* Sidebar filters */}
-          <div className="w-52 flex-shrink-0">
+          <div className={`lg:w-52 flex-shrink-0 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sticky top-24">
               <h3 className="font-semibold text-gray-900 text-sm mb-3">الفئة</h3>
               <div className="space-y-1">
@@ -239,9 +250,9 @@ export default function JobsPage() {
               <div className="space-y-4">
                 {filtered.map((job) => (
                   <Link key={job.id} href={`/jobs/${job.id}`}
-                    className="block bg-white rounded-2xl border border-gray-100 p-6 hover:border-emerald-200 hover:shadow-sm transition-all group">
+                    className="block bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 hover:border-emerald-200 hover:shadow-sm transition-all group">
 
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg font-medium">

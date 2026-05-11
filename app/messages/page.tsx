@@ -211,7 +211,7 @@ function MessagesContent() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col" dir="rtl">
       <nav className="bg-white border-b border-gray-100 z-50 flex-shrink-0">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -224,8 +224,9 @@ function MessagesContent() {
         </div>
       </nav>
 
-      <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-6 py-4 gap-4">
-        <div className="w-72 flex-shrink-0 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden">
+      <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-4 gap-2 sm:gap-4">
+        {/* Conversation list — hidden on mobile when a chat is open */}
+        <div className={`${activeConv ? 'hidden sm:flex' : 'flex'} w-full sm:w-72 flex-shrink-0 bg-white rounded-2xl border border-gray-100 flex-col overflow-hidden`}>
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">الرسائل</h2>
           </div>
@@ -264,7 +265,8 @@ function MessagesContent() {
           </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-2xl border border-gray-100 flex flex-col overflow-hidden">
+        {/* Chat area — full width on mobile */}
+        <div className={`${!activeConv ? 'hidden sm:flex' : 'flex'} flex-1 bg-white rounded-2xl border border-gray-100 flex-col overflow-hidden`}>
           {!activeConv ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -274,7 +276,11 @@ function MessagesContent() {
             </div>
           ) : (
             <>
-              <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+              <div className="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-3">
+                {/* Mobile back button */}
+                <button onClick={() => setActiveConv(null)} className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
                 <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                   {activeConv.other_full_name?.charAt(0)}
                 </div>

@@ -58,18 +58,18 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
         {/* Header & Revenue Tracker */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">الإدارة المالية</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">الإدارة المالية</h1>
             <p className="text-gray-400 text-sm">إدارة السحوبات وعوائد المنصة</p>
           </div>
           
-          <div className="bg-gray-900 border-r-4 border-emerald-500 p-5 rounded-2xl min-w-[250px]">
+          <div className="bg-gray-900 border-r-4 border-emerald-500 p-4 sm:p-5 rounded-2xl sm:min-w-[250px]">
             <div className="text-sm text-gray-400 mb-1">إجمالي أرباح المنصة (10%)</div>
-            <div className="text-2xl font-bold text-emerald-500">
+            <div className="text-xl sm:text-2xl font-bold text-emerald-500">
               {totalRevenue.toLocaleString()} دج
             </div>
           </div>
@@ -77,10 +77,11 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
 
         {/* Withdrawals Table */}
         <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
-          <div className="px-6 py-4 border-b border-gray-800">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-800">
             <h2 className="font-semibold text-white">طلبات السحب المعلقة</h2>
           </div>
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-gray-800 bg-gray-900/50">
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">المستخدم</th>
@@ -129,6 +130,7 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
       </div>
