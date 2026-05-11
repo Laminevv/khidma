@@ -28,6 +28,10 @@ khidma2/
 │   ├── contracts/
 │   │   ├── page.tsx          ✅ قائمة العقود
 │   │   └── [id]/page.tsx     ✅ تفاصيل العقد + Escrow
+│   ├── profile/
+│   │   └── [username]/       ✅ ملف المستقل العام (Dark-mode)
+│   │       ├── page.tsx      ✅ Server Component (data fetching)
+│   │       └── ClientProfilePage.tsx ✅ Client UI
 │   ├── messages/page.tsx     ✅ Chat فوري (Supabase Realtime)
 │   └── admin/page.tsx        ✅ لوحة الإدارة (admin only)
 ├── lib/
@@ -76,11 +80,12 @@ khidma2/
 6. **Chat** — رسائل فورية بين المستخدمين (Supabase Realtime)
 7. **Admin** — إدارة مستخدمين + مشاريع + إحصائيات
 8. **i18n** — ثلاث لغات جاهزة
+9. **Public Profiles** — صفحة عامة للمستقل مع المشاريع المكتملة والتقييمات
 
 ## ما تبقى ⏳
 - Deploy على Vercel
 - تحسينات UI/UX
-- صفحة Profile للمستقل
+- ~~صفحة Profile للمستقل~~ ✅ تم
 - نظام التقييمات (Reviews)
 - نظام الإشعارات (Notifications)
 - صفحة المحفظة (Wallet)
@@ -128,3 +133,25 @@ npm install          # تثبيت المكتبات
 
 ### Database Enhancements
 - **Custom SQL Functions (RPCs)**: Transitioned core financial logic from client-side mutations to atomic database functions. We added RPCs to handle secure transactions, check admin roles (`is_admin`), and execute complex operations safely within a single transaction boundary.
+
+## Public Freelancer Profiles Sprint
+
+### Route: `/profile/[username]`
+- **Architecture**: Server Component (`page.tsx`) fetches data → passes to Client Component (`ClientProfilePage.tsx`)
+- **Data Fetching** (Server-side):
+  - Profile from `profiles` table (by username)
+  - Completed contracts from `contracts` table (where `freelancer_id = profile.id` and `status = 'completed'`)
+  - Reviews from `reviews` table (where `reviewee_id = profile.id`)
+  - Current user auth state (for conditional UI: "Send Message" / "Hire Me" buttons)
+- **UI/UX**:
+  - Premium dark-mode design (`bg-gray-950`) with glassmorphic hero section
+  - Gradient avatar with emerald accent ring and online indicator
+  - Skills displayed as styled tags with hover effects
+  - Stats grid (completed projects, reviews, hourly rate)
+  - Completed projects list with links to contract details
+  - Reviews section with star ratings and reviewer info
+  - "Send Message" + "Hire Me" action buttons (hidden on own profile)
+  - Fully responsive (mobile-first with `sm:` and `lg:` breakpoints)
+  - RTL layout with Tajawal font
+- **Error Handling**: Full try/catch on server component, 404 page for unknown usernames
+- **SEO**: Dynamic `generateMetadata` for per-profile title and description
