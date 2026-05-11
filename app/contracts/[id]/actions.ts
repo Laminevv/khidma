@@ -3,6 +3,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+// Helper: create notification via SECURITY DEFINER RPC
+async function notifyUser(supabase: Awaited<ReturnType<typeof createClient>>, targetUserId: string, senderId: string, type: string, title: string, body?: string, link?: string) {
+  if (targetUserId === senderId) return // Don't self-notify
+  try {
+    await supabase.rpc('create_notification', {
+      p_user_id: targetUserId,
+      p_type: type,
+      p_title: title,
+      p_body: body || null,
+      p_link: link || null,
+    })
+  } catch (e) {
+    console.error('Notification failed (non-blocking):', e)
+  }
+}
+
 export async function lockFundsAction(contractId: string, milestoneId: string, amount: number) {
   try {
     const supabase = await createClient()
@@ -37,7 +53,7 @@ export async function lockFundsAction(contractId: string, milestoneId: string, a
     // 2. Fetch current contract to update milestone status
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('milestones')
+      .select('milestones, freelancer_id, title')
       .eq('id', contractId)
       .single()
       
@@ -63,6 +79,14 @@ export async function lockFundsAction(contractId: string, milestoneId: string, a
     }
 
     revalidatePath(`/contracts/${contractId}`)
+
+    // 4. Notify freelancer that funds were locked
+    await notifyUser(supabase, contract.freelancer_id, user.id, 'contract_funded',
+      'تم تأمين الأموال لمرحلة جديدة',
+      `تم تأمين ${amount.toLocaleString()} دج في عقد "${contract.title}"`,
+      `/contracts/${contractId}`
+    )
+
     return { success: true }
   } catch (error) {
     console.error('lockFundsAction unexpected error:', error)
@@ -100,7 +124,7 @@ export async function approveAndReleaseAction(contractId: string, milestoneId: s
     // 2. Fetch current contract to update milestone status
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('milestones, status')
+      .select('milestones, status, client_id, freelancer_id, title')
       .eq('id', contractId)
       .single()
       
@@ -131,6 +155,30 @@ export async function approveAndReleaseAction(contractId: string, milestoneId: s
     }
 
     revalidatePath(`/contracts/${contractId}`)
+
+    // 4. Notify freelancer that payment was released
+    const fee = Math.round(amount * 0.10)
+    const net = amount - fee
+    await notifyUser(supabase, contract.freelancer_id, user.id, 'payment_released',
+      `تم تحرير ${net.toLocaleString()} دج لرصيدك`,
+      `مرحلة في عقد "${contract.title}"`,
+      `/contracts/${contractId}`
+    )
+
+    // 5. If all milestones done → notify both parties
+    if (allDone) {
+      await notifyUser(supabase, contract.freelancer_id, user.id, 'contract_completed',
+        '🏆 تم إكمال العقد بنجاح!',
+        `العقد "${contract.title}" اكتمل. يمكنك تقييم التجربة.`,
+        `/contracts/${contractId}`
+      )
+      await notifyUser(supabase, contract.client_id, user.id, 'contract_completed',
+        '🏆 تم إكمال العقد بنجاح!',
+        `العقد "${contract.title}" اكتمل. يمكنك تقييم التجربة.`,
+        `/contracts/${contractId}`
+      )
+    }
+
     return { success: true }
   } catch (error) {
     console.error('approveAndReleaseAction unexpected error:', error)
@@ -218,10 +266,17 @@ export async function submitReviewAction(
 
     revalidatePath(`/contracts/${contractId}`)
     revalidatePath(`/profile`)
+
+    // 6. Notify the reviewee
+    await notifyUser(supabase, revieweeId, user.id, 'new_review',
+      '⭐ تلقيت تقييماً جديداً',
+      `تقييم ${rating} نجوم${comment ? ': "' + comment.trim().substring(0, 50) + '..."' : ''}`,
+      `/contracts/${contractId}`
+    )
+
     return { success: true }
   } catch (error) {
     console.error('submitReviewAction unexpected error:', error)
     return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
 }
-

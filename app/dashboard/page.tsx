@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { requestWithdrawalAction } from '@/app/actions/wallet'
+import NotificationBell from '@/app/components/NotificationBell'
 
 interface Profile {
   id: string
@@ -155,6 +156,7 @@ export default function DashboardPage() {
                 ⚙️ الإدارة
               </Link>
             )}
+            <NotificationBell />
             <span className="flex items-center gap-2 text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
               <span>{isClient ? '💼' : '🧑‍💻'}</span>
               <span>{isClient ? 'صاحب عمل' : 'مستقل'}</span>
@@ -256,6 +258,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-900 mb-4">روابط سريعة</h3>
               <div className="space-y-1">
                 {[
+                  { label: 'ملفي الشخصي', href: `/profile/${profile?.username}`, icon: '👤' },
                   { label: 'تصفح المشاريع', href: '/jobs', icon: '🔍' },
                   { label: 'الرسائل', href: '/messages', icon: '💬' },
                   { label: 'المحفظة', href: '/wallet', icon: '💳' },

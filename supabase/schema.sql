@@ -498,6 +498,25 @@ CREATE POLICY "notif_owner_update"
   ON public.notifications FOR UPDATE
   USING (auth.uid() = user_id);
 
+-- RPC: Insert notification for any user (SECURITY DEFINER bypasses RLS)
+CREATE OR REPLACE FUNCTION public.create_notification(
+  p_user_id UUID,
+  p_type TEXT,
+  p_title TEXT,
+  p_body TEXT DEFAULT NULL,
+  p_link TEXT DEFAULT NULL
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_id UUID;
+BEGIN
+  INSERT INTO public.notifications (user_id, type, title, body, link)
+  VALUES (p_user_id, p_type, p_title, p_body, p_link)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+
 -- ── SKILLS CATALOG ────────────────────────────────────────────
 CREATE POLICY "skills_public_read" ON public.skills_catalog FOR SELECT USING (TRUE);
 CREATE POLICY "skills_admin_write" ON public.skills_catalog FOR ALL USING (public.is_admin());

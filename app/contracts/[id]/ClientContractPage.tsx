@@ -465,24 +465,24 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
               <h3 className="font-semibold text-gray-900 mb-4">أطراف العقد</h3>
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                <Link href={`/profile/${contract.client?.username}`} className="flex items-center gap-3 group">
+                  <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 group-hover:ring-2 group-hover:ring-blue-300 transition-all">
                     {contract.client?.full_name?.charAt(0) || 'ع'}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{contract.client?.full_name}</div>
+                    <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{contract.client?.full_name}</div>
                     <div className="text-xs text-gray-400">💼 صاحب العمل</div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                </Link>
+                <Link href={`/profile/${contract.freelancer?.username}`} className="flex items-center gap-3 group">
+                  <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 group-hover:ring-2 group-hover:ring-emerald-300 transition-all">
                     {contract.freelancer?.full_name?.charAt(0) || 'م'}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{contract.freelancer?.full_name}</div>
+                    <div className="text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">{contract.freelancer?.full_name}</div>
                     <div className="text-xs text-gray-400">🧑‍💻 المستقل</div>
                   </div>
-                </div>
+                </Link>
               </div>
             </div>
 

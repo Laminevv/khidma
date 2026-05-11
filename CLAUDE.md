@@ -82,13 +82,14 @@ khidma2/
 8. **i18n** — ثلاث لغات جاهزة
 9. **Public Profiles** — صفحة عامة للمستقل مع المشاريع المكتملة والتقييمات
 10. **Reviews & Ratings** — نظام تقييم 1-5 نجوم + تعليق عند إكمال العقد
+11. **Notifications** — إشعارات فورية + جرس + عداد غير مقروء + تنبيهات أحداث تلقائية
 
 ## ما تبقى ⏳
 - Deploy على Vercel
 - تحسينات UI/UX
 - ~~صفحة Profile للمستقل~~ ✅ تم
 - ~~نظام التقييمات (Reviews)~~ ✅ تم
-- نظام الإشعارات (Notifications)
+- ~~نظام الإشعارات (Notifications)~~ ✅ تم
 - صفحة المحفظة (Wallet)
 
 ## مشاكل معروفة وحلولها
@@ -156,6 +157,11 @@ npm install          # تثبيت المكتبات
   - RTL layout with Tajawal font
 - **Error Handling**: Full try/catch on server component, 404 page for unknown usernames
 - **SEO**: Dynamic `generateMetadata` for per-profile title and description
+- **Navigation Links** (added to existing pages):
+  - Dashboard sidebar: "ملفي الشخصي" quick link → `/profile/${username}`
+  - Job detail proposals list: Freelancer names + avatars → `/profile/${username}` (clickable)
+  - Job detail sidebar: Job owner name → `/profile/${username}` (clickable)
+  - Contract detail sidebar: Client + Freelancer party names → `/profile/${username}` (clickable)
 
 ## Review & Rating System Sprint
 
@@ -186,3 +192,58 @@ npm install          # تثبيت المكتبات
 - **Reviews List**: Displayed on contract page when status is `completed`, with reviewer avatar, name, date, stars, and comment
 - **State Indicators**: "✅ لقد قمت بتقييم" badge when already reviewed, "أضف تقييم" button hidden after submission
 
+## Notifications System Sprint
+
+### Architecture
+- **Server Actions**: `app/actions/notifications.ts`
+  - `getNotifications(limit)` — Fetch user's notifications (newest first)
+  - `markNotificationRead(id)` — Mark single notification as read
+  - `markAllNotificationsRead()` — Mark all as read
+  - `sendNotificationAction(userId, type, title, body, link)` — Create notification for any user
+- **UI Component**: `app/components/NotificationBell.tsx` — Reusable client component
+- **Database RPC**: `create_notification()` — SECURITY DEFINER function (bypasses RLS for cross-user inserts)
+
+### NotificationBell Component
+- Bell icon with red unread count badge (animated pulse)
+- Dropdown with notification list (max-height scrollable)
+- Auto-refresh every 30 seconds via polling
+- Click-outside-to-close behavior
+- "Mark All Read" button
+- Per-notification click marks as read and navigates to link
+- **Design**: White/green theme matching platform (NO dark mode)
+- Integrated into dashboard navbar (importable to any page)
+
+### Event Triggers (automatic notification creation)
+| Event | Who is Notified | Type | Where Triggered |
+|---|---|---|---|
+| Freelancer submits proposal | Job owner | `new_proposal` | `jobs/[id]/page.tsx` |
+| Client accepts proposal | Freelancer | `proposal_accepted` | `jobs/[id]/page.tsx` |
+| Client locks escrow funds | Freelancer | `contract_funded` | `contracts/[id]/actions.ts` |
+| Client releases payment | Freelancer | `payment_released` | `contracts/[id]/actions.ts` |
+| All milestones completed | Both parties | `contract_completed` | `contracts/[id]/actions.ts` |
+| User submits review | Reviewee | `new_review` | `contracts/[id]/actions.ts` |
+
+### Database Changes
+- Added `create_notification` SECURITY DEFINER RPC to `supabase/schema.sql`
+- **IMPORTANT**: This RPC must be deployed to the database before notifications will work
+
+### SQL to run in Supabase SQL Editor:
+```sql
+CREATE OR REPLACE FUNCTION public.create_notification(
+  p_user_id UUID,
+  p_type TEXT,
+  p_title TEXT,
+  p_body TEXT DEFAULT NULL,
+  p_link TEXT DEFAULT NULL
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_id UUID;
+BEGIN
+  INSERT INTO public.notifications (user_id, type, title, body, link)
+  VALUES (p_user_id, p_type, p_title, p_body, p_link)
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$;
+```

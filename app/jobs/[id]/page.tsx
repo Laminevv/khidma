@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { sendNotificationAction } from '@/app/actions/notifications'
 
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime()
@@ -93,6 +94,15 @@ export default function JobDetailPage() {
     if (!error) {
       setSubmitted(true)
       setShowProposalForm(false)
+
+      // Notify job owner of new proposal
+      sendNotificationAction(
+        job.client_id,
+        'new_proposal',
+        'تلقيت عرضاً جديداً',
+        `عرض جديد بقيمة ${Number(proposal.bid_amount).toLocaleString()} دج على مشروع "${job.title}"`,
+        `/jobs/${id}`
+      )
     }
     setSubmitting(false)
   }
@@ -134,6 +144,15 @@ export default function JobDetailPage() {
         supabase.from('proposals').update({ status: 'accepted' }).eq('id', prop.id),
         supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id),
       ])
+
+      // Notify freelancer that their proposal was accepted
+      sendNotificationAction(
+        prop.freelancer_id,
+        'proposal_accepted',
+        '✅ تم قبول عرضك!',
+        `تم قبول عرضك على "${job.title}" وإنشاء عقد جديد`,
+        `/contracts/${contract.id}`
+      )
 
       router.push(`/contracts/${contract.id}`)
     } catch {
@@ -301,11 +320,11 @@ export default function JobDetailPage() {
                     }`}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                          <Link href={`/profile/${prop.profiles?.username}`} className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold hover:ring-2 hover:ring-emerald-300 transition-all">
                             {prop.profiles?.full_name?.charAt(0) || 'م'}
-                          </div>
+                          </Link>
                           <div>
-                            <div className="font-medium text-gray-900 text-sm">{prop.profiles?.full_name}</div>
+                            <Link href={`/profile/${prop.profiles?.username}`} className="font-medium text-gray-900 text-sm hover:text-emerald-600 transition-colors">{prop.profiles?.full_name}</Link>
                             <div className="text-xs text-gray-400">@{prop.profiles?.username}</div>
                             {prop.profiles?.rating > 0 && (
                               <div className="text-xs text-yellow-600">⭐ {prop.profiles.rating}</div>
@@ -383,15 +402,15 @@ export default function JobDetailPage() {
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">صاحب المشروع</h3>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold">
+              <Link href={`/profile/${job.profiles?.username}`} className="flex items-center gap-3 group">
+                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold group-hover:ring-2 group-hover:ring-emerald-300 transition-all">
                   {job.profiles?.full_name?.charAt(0) || 'م'}
                 </div>
                 <div>
-                  <div className="font-medium text-gray-900 text-sm">{job.profiles?.full_name}</div>
+                  <div className="font-medium text-gray-900 text-sm group-hover:text-emerald-600 transition-colors">{job.profiles?.full_name}</div>
                   <div className="text-xs text-gray-400">@{job.profiles?.username}</div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
