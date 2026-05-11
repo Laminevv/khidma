@@ -129,16 +129,20 @@ export default function ContractDetailPage() {
   }
 
   const downloadFile = async (filePath: string, index: number) => {
-    const { data } = await supabase.storage.from('deliverables').createSignedUrl(filePath, 3600)
-    if (data?.signedUrl) {
-      const a = document.createElement('a')
-      a.href = data.signedUrl
-      a.download = filePath.split('/').pop() || `file_${index + 1}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
+  const { data } = await supabase.storage.from('deliverables').createSignedUrl(filePath, 3600)
+  if (data?.signedUrl) {
+    const response = await fetch(data.signedUrl)
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filePath.split('/').pop() || `file_${index + 1}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
+}
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
