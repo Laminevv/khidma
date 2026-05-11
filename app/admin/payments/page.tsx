@@ -37,12 +37,19 @@ export default async function AdminPaymentsPage() {
     `)
     .eq('type', 'withdrawal')
     .eq('status', 'pending')
-    .order('created_at', { ascending: false })
+  // Format the data to guarantee a single profile object, resolving TypeScript errors
+  const formattedWithdrawals = (withdrawals || []).map((w: any) => ({
+    id: w.id,
+    amount: w.amount,
+    created_at: w.created_at,
+    metadata: w.metadata,
+    profiles: Array.isArray(w.profiles) ? w.profiles[0] : w.profiles
+  }))
 
   return (
     <ClientPaymentsPage 
       totalRevenue={overview?.total_fees_collected || 0}
-      initialWithdrawals={withdrawals || []} 
+      initialWithdrawals={formattedWithdrawals} 
     />
   )
 }

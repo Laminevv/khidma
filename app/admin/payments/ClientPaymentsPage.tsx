@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { confirmPayoutAction } from '@/app/actions/admin'
 
-interface Withdrawal {
+export interface Withdrawal {
   id: string
   amount: number
   created_at: string
-  metadata: { payoutDetails?: string } | null
+  metadata: any
   profiles: { username: string; full_name: string } | null
 }
 
