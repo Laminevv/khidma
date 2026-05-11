@@ -9,13 +9,10 @@ export default async function AdminPaymentsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single()
+  // Fetch admin status directly from the database using auth.uid() via the RPC
+  const { data: isAdmin } = await supabase.rpc('is_admin')
 
-  if (!profile?.is_admin) {
+  if (!isAdmin) {
     redirect('/dashboard')
   }
 
