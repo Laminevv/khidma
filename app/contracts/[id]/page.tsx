@@ -30,5 +30,30 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     )
   }
 
-  return <ClientContractPage initialContract={contract} userId={user.id} />
+  // Fetch existing reviews for this contract
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rawReviews } = await supabase
+    .from('reviews')
+    .select(`
+      id,
+      rating,
+      comment,
+      reviewer_id,
+      reviewee_id,
+      created_at,
+      reviewer:profiles!reviewer_id(username, full_name)
+    `)
+    .eq('contract_id', id)
+
+  const reviews = (rawReviews || []).map((r: any) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    reviewer_id: r.reviewer_id,
+    reviewee_id: r.reviewee_id,
+    created_at: r.created_at,
+    reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
+  }))
+
+  return <ClientContractPage initialContract={contract} userId={user.id} reviews={reviews} />
 }

@@ -137,3 +137,91 @@ export async function approveAndReleaseAction(contractId: string, milestoneId: s
     return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
 }
+
+export async function submitReviewAction(
+  contractId: string,
+  revieweeId: string,
+  rating: number,
+  comment: string
+) {
+  try {
+    const supabase = await createClient()
+
+    // 1. Verify Authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user || authError) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // 2. Server-side input validation
+    if (!contractId || !revieweeId) {
+      return { success: false, error: 'Missing contract or reviewee ID' }
+    }
+    if (typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return { success: false, error: 'Rating must be between 1 and 5' }
+    }
+    if (user.id === revieweeId) {
+      return { success: false, error: 'You cannot review yourself' }
+    }
+
+    // 3. Verify the contract is completed and the user is a party to it
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select('id, status, client_id, freelancer_id')
+      .eq('id', contractId)
+      .single()
+
+    if (contractError || !contract) {
+      console.error('Contract fetch error:', contractError?.message)
+      return { success: false, error: 'Contract not found' }
+    }
+    if (contract.status !== 'completed') {
+      return { success: false, error: 'Reviews can only be submitted for completed contracts' }
+    }
+    if (contract.client_id !== user.id && contract.freelancer_id !== user.id) {
+      return { success: false, error: 'You are not a party to this contract' }
+    }
+
+    // 4. Check for duplicate review (UNIQUE constraint: contract_id + reviewer_id)
+    const { data: existingReview } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('contract_id', contractId)
+      .eq('reviewer_id', user.id)
+      .single()
+
+    if (existingReview) {
+      return { success: false, error: 'You have already reviewed this contract' }
+    }
+
+    // 5. Insert the review
+    // The PostgreSQL trigger `update_user_rating` will automatically:
+    //   - Recalculate AVG(rating) for the reviewee
+    //   - Update profiles.rating and profiles.total_reviews
+    const { error: insertError } = await supabase
+      .from('reviews')
+      .insert({
+        contract_id: contractId,
+        reviewer_id: user.id,
+        reviewee_id: revieweeId,
+        rating,
+        comment: comment?.trim() || null,
+      })
+
+    if (insertError) {
+      console.error('Review insert error:', insertError.message)
+      if (insertError.code === '23505') {
+        return { success: false, error: 'You have already reviewed this contract' }
+      }
+      return { success: false, error: 'Failed to submit review. Please try again.' }
+    }
+
+    revalidatePath(`/contracts/${contractId}`)
+    revalidatePath(`/profile`)
+    return { success: true }
+  } catch (error) {
+    console.error('submitReviewAction unexpected error:', error)
+    return { success: false, error: 'An unexpected server error occurred. Please try again.' }
+  }
+}
+

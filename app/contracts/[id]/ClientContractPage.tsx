@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { lockFundsAction, approveAndReleaseAction } from './actions'
+import { lockFundsAction, approveAndReleaseAction, submitReviewAction } from './actions'
 
 interface Milestone {
   id: string
@@ -31,6 +31,16 @@ interface Contract {
   jobs: { id: string; title: string }
 }
 
+interface Review {
+  id: string
+  rating: number
+  comment: string | null
+  reviewer_id: string
+  reviewee_id: string
+  created_at: string
+  reviewer: { username: string; full_name: string } | null
+}
+
 function msStatusLabel(s: string) {
   const map: Record<string, string> = { pending: 'في الانتظار', in_progress: 'جارٍ التنفيذ', submitted: 'تم التسليم', approved: 'مُعتمد ✓' }
   return map[s] || s
@@ -41,7 +51,41 @@ function msStatusColor(s: string) {
   return map[s] || 'bg-gray-100 text-gray-500'
 }
 
-export default function ClientContractPage({ initialContract, userId }: { initialContract: Contract, userId: string }) {
+function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0)
+  return (
+    <div className="flex items-center gap-1" dir="ltr">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onChange(star)}
+          onMouseEnter={() => setHover(star)}
+          onMouseLeave={() => setHover(0)}
+          className={`text-3xl transition-all duration-150 hover:scale-110 ${
+            star <= (hover || value) ? 'text-amber-400' : 'text-gray-300'
+          }`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function StarRatingDisplay({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5 text-sm" dir="ltr">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <span key={star} className={star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-300'}>
+          ★
+        </span>
+      ))}
+    </div>
+  )
+}
+
+export default function ClientContractPage({ initialContract, userId, reviews: initialReviews = [] }: { initialContract: Contract, userId: string, reviews?: Review[] }) {
   const [contract, setContract] = useState<Contract>(initialContract)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
@@ -50,6 +94,13 @@ export default function ClientContractPage({ initialContract, userId }: { initia
   const [deliveryFiles, setDeliveryFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Review state
+  const [reviews, setReviews] = useState<Review[]>(initialReviews)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -125,6 +176,39 @@ export default function ClientContractPage({ initialContract, userId }: { initia
   const completedMilestones = contract.milestones?.filter(m => m.status === 'approved').length || 0
   const totalMilestones = contract.milestones?.length || 0
   const progress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0
+
+  // Review helpers
+  const hasUserReviewed = reviews.some(r => r.reviewer_id === userId)
+  const revieweeId = isClient ? contract.freelancer_id : contract.client_id
+  const revieweeName = isClient ? contract.freelancer?.full_name : contract.client?.full_name
+  const canReview = contract.status === 'completed' && !hasUserReviewed
+
+  const handleSubmitReview = async () => {
+    if (reviewRating === 0) {
+      showToast('يرجى اختيار تقييم من 1 إلى 5', 'error')
+      return
+    }
+    setReviewLoading(true)
+    const res = await submitReviewAction(contract.id, revieweeId, reviewRating, reviewComment)
+    if (res.success) {
+      showToast('✅ تم إرسال التقييم بنجاح!')
+      setReviews([...reviews, {
+        id: Date.now().toString(),
+        rating: reviewRating,
+        comment: reviewComment || null,
+        reviewer_id: userId,
+        reviewee_id: revieweeId,
+        created_at: new Date().toISOString(),
+        reviewer: isClient ? { username: contract.client?.username || '', full_name: contract.client?.full_name || '' } : { username: contract.freelancer?.username || '', full_name: contract.freelancer?.full_name || '' },
+      }])
+      setShowReviewModal(false)
+      setReviewRating(0)
+      setReviewComment('')
+    } else {
+      showToast(res.error || 'حدث خطأ', 'error')
+    }
+    setReviewLoading(false)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -293,6 +377,70 @@ export default function ClientContractPage({ initialContract, userId }: { initia
                 ))}
               </div>
             </div>
+
+            {/* ── Reviews Section ── */}
+            {contract.status === 'completed' && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="text-lg">⭐</span> التقييمات
+                  </h2>
+                  {canReview && (
+                    <button
+                      onClick={() => setShowReviewModal(true)}
+                      className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors flex items-center gap-1.5"
+                    >
+                      ✍️ أضف تقييم
+                    </button>
+                  )}
+                </div>
+
+                {reviews.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2 opacity-40">💬</div>
+                    <p className="text-gray-400 text-sm">لا توجد تقييمات بعد</p>
+                    {canReview && (
+                      <p className="text-gray-500 text-xs mt-1">كن أول من يُقيّم!</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                              {review.reviewer?.full_name?.charAt(0) || '؟'}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {review.reviewer?.full_name || 'مستخدم'}
+                                {review.reviewer_id === userId && (
+                                  <span className="text-xs text-emerald-600 mr-1">(أنت)</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {new Date(review.created_at).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </div>
+                            </div>
+                          </div>
+                          <StarRatingDisplay rating={review.rating} />
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-gray-600 leading-relaxed mt-2 pr-12">{review.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {hasUserReviewed && (
+                  <div className="mt-4 text-center">
+                    <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">✅ لقد قمت بتقييم هذا العقد</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -351,6 +499,63 @@ export default function ClientContractPage({ initialContract, userId }: { initia
           </div>
         </div>
       </div>
+
+      {/* ── Review Modal ── */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md" dir="rtl">
+            <h3 className="font-bold text-gray-900 text-base mb-1">تقييم التعاون</h3>
+            <p className="text-sm text-gray-500 mb-5">كيف كانت تجربتك مع {revieweeName}؟</p>
+
+            {/* Star Rating Input */}
+            <div className="flex flex-col items-center mb-5">
+              <StarRatingInput value={reviewRating} onChange={setReviewRating} />
+              <p className="text-sm text-gray-500 mt-2 h-5">
+                {reviewRating === 1 && 'سيئ'}
+                {reviewRating === 2 && 'مقبول'}
+                {reviewRating === 3 && 'جيد'}
+                {reviewRating === 4 && 'جيد جداً'}
+                {reviewRating === 5 && 'ممتاز!'}
+              </p>
+            </div>
+
+            {/* Comment */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">تعليق (اختياري)</label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder="اكتب تعليقك عن التجربة..."
+                rows={3}
+                maxLength={500}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                style={{ color: '#111827' }}
+              />
+              <p className="text-xs text-gray-400 mt-1 text-left" dir="ltr">{reviewComment.length}/500</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmitReview}
+                disabled={reviewLoading || reviewRating === 0}
+                className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-medium hover:bg-amber-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+              >
+                {reviewLoading ? (
+                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                ) : '⭐'}
+                {reviewLoading ? 'جاري الإرسال...' : 'إرسال التقييم'}
+              </button>
+              <button
+                onClick={() => { setShowReviewModal(false); setReviewRating(0); setReviewComment('') }}
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -81,12 +81,13 @@ khidma2/
 7. **Admin** — إدارة مستخدمين + مشاريع + إحصائيات
 8. **i18n** — ثلاث لغات جاهزة
 9. **Public Profiles** — صفحة عامة للمستقل مع المشاريع المكتملة والتقييمات
+10. **Reviews & Ratings** — نظام تقييم 1-5 نجوم + تعليق عند إكمال العقد
 
 ## ما تبقى ⏳
 - Deploy على Vercel
 - تحسينات UI/UX
 - ~~صفحة Profile للمستقل~~ ✅ تم
-- نظام التقييمات (Reviews)
+- ~~نظام التقييمات (Reviews)~~ ✅ تم
 - نظام الإشعارات (Notifications)
 - صفحة المحفظة (Wallet)
 
@@ -155,3 +156,33 @@ npm install          # تثبيت المكتبات
   - RTL layout with Tajawal font
 - **Error Handling**: Full try/catch on server component, 404 page for unknown usernames
 - **SEO**: Dynamic `generateMetadata` for per-profile title and description
+
+## Review & Rating System Sprint
+
+### Architecture
+- **Server Action**: `submitReviewAction` in `app/contracts/[id]/actions.ts`
+- **Server Page**: `page.tsx` fetches existing reviews per contract and passes to client
+- **Client UI**: Review section + modal integrated into `ClientContractPage.tsx`
+
+### Rating Recalculation Logic
+- **Fully automated via PostgreSQL trigger** (`update_user_rating`):
+  - On every `INSERT` or `UPDATE` on `reviews`, the trigger fires
+  - Calculates `AVG(rating)` across all reviews where `reviewee_id = NEW.reviewee_id`
+  - Updates `profiles.rating` (rounded to 2 decimal places) and `profiles.total_reviews` (COUNT)
+  - Zero application-level code needed for recalculation — the database handles it atomically
+
+### Server-Side Validation (submitReviewAction)
+- Auth verification
+- Rating range check (1-5, integer only)
+- Self-review prevention (`reviewer_id !== reviewee_id`)
+- Contract completion verification (`status === 'completed'`)
+- Party verification (only client/freelancer of the contract)
+- Duplicate review prevention (checked both in-app and via DB UNIQUE constraint)
+
+### UI Components
+- **StarRatingInput**: Interactive 1-5 star selector with hover effects and scale animation
+- **StarRatingDisplay**: Read-only star display for existing reviews
+- **Review Modal**: Bottom-sheet on mobile, centered on desktop. Includes star selector, comment textarea (500 char limit), Arabic label descriptors (سيئ/مقبول/جيد/جيد جداً/ممتاز)
+- **Reviews List**: Displayed on contract page when status is `completed`, with reviewer avatar, name, date, stars, and comment
+- **State Indicators**: "✅ لقد قمت بتقييم" badge when already reviewed, "أضف تقييم" button hidden after submission
+
