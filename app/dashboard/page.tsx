@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { requestWithdrawalAction } from '@/app/actions/wallet'
 
 interface Profile {
   id: string
@@ -39,6 +40,52 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [fundingLoading, setFundingLoading] = useState(false)
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+
+  const handleFund = async () => {
+    const amountStr = prompt('أدخل المبلغ الذي تريد شحنه (دج):', '5000')
+    if (!amountStr) return
+    const amount = parseInt(amountStr)
+    if (isNaN(amount) || amount <= 0) return alert('مبلغ غير صالح')
+
+    setFundingLoading(true)
+    try {
+      const res = await fetch('/api/funding/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      })
+      const data = await res.json()
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url
+      } else {
+        alert(data.error || 'حدث خطأ')
+      }
+    } catch (e) {
+      alert('حدث خطأ في الاتصال')
+    }
+    setFundingLoading(false)
+  }
+
+  const handleWithdraw = async () => {
+    if (!profile || profile.balance < 10000) return
+    
+    const amountStr = prompt(`لديك ${profile.balance} دج. أدخل المبلغ المراد سحبه:`, profile.balance.toString())
+    if (!amountStr) return
+    const amount = parseInt(amountStr)
+    if (isNaN(amount) || amount < 10000 || amount > profile.balance) return alert('مبلغ غير صالح')
+
+    setWithdrawLoading(true)
+    const res = await requestWithdrawalAction(amount)
+    if (res.success) {
+      alert('✅ تم تقديم طلب السحب بنجاح')
+      setProfile({ ...profile, balance: profile.balance - amount })
+    } else {
+      alert(res.error || 'حدث خطأ')
+    }
+    setWithdrawLoading(false)
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -222,9 +269,28 @@ export default function DashboardPage() {
             <div className="bg-emerald-500 rounded-2xl p-6 text-white">
               <p className="text-emerald-100 text-xs mb-1">الرصيد المتاح</p>
               <p className="text-2xl font-bold mb-4">{(profile?.balance || 0).toLocaleString()} دج</p>
-              <Link href="/wallet" className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors inline-block">
-                إدارة المحفظة
-              </Link>
+              
+              <div className="flex flex-col gap-2 mt-4">
+                {isClient && (
+                  <button onClick={handleFund} disabled={fundingLoading} className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors text-center disabled:opacity-70">
+                    {fundingLoading ? 'جاري التحويل...' : '➕ شحن الرصيد'}
+                  </button>
+                )}
+                
+                {!isClient && (
+                  <button 
+                    onClick={handleWithdraw} 
+                    disabled={withdrawLoading || (profile?.balance || 0) < 10000} 
+                    title={(profile?.balance || 0) < 10000 ? 'يجب أن يكون رصيدك 10,000 دج على الأقل لسحب الأموال' : ''}
+                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed">
+                    {withdrawLoading ? 'جاري الطلب...' : '💸 سحب الأموال'}
+                  </button>
+                )}
+                
+                <Link href="/wallet" className="border border-emerald-300 text-emerald-50 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors text-center mt-1">
+                  إدارة المحفظة
+                </Link>
+              </div>
             </div>
           </div>
         </div>

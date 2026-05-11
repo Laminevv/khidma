@@ -56,7 +56,7 @@ export async function approveAndReleaseAction(contractId: string, milestoneId: s
   const { error: rpcError } = await supabase.rpc('release_milestone_escrow', {
     p_contract_id: contractId,
     p_milestone_id: milestoneId,
-    p_fee_pct: 0.05
+    p_fee_pct: 0.10
   })
 
   if (rpcError) {

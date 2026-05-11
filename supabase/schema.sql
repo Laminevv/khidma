@@ -559,7 +559,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.release_milestone_escrow(
   p_contract_id   UUID,
   p_milestone_id  TEXT,
-  p_fee_pct       NUMERIC DEFAULT 0.05
+  p_fee_pct       NUMERIC DEFAULT 0.10
 )
 RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -592,6 +592,65 @@ BEGIN
 
   INSERT INTO public.transactions (contract_id, from_user_id, to_user_id, amount, fee, type, status, milestone_id)
   VALUES (p_contract_id, v_contract.client_id, v_contract.freelancer_id, v_amount, v_fee, 'escrow_release', 'completed', p_milestone_id)
+  RETURNING id INTO v_txn_id;
+
+  RETURN v_txn_id;
+END;
+$$;
+
+-- ============================================================
+--  FUNDING & WITHDRAWAL FUNCTIONS
+-- ============================================================
+
+-- Process a deposit from a webhook
+CREATE OR REPLACE FUNCTION public.process_deposit(
+  p_user_id       UUID,
+  p_amount        NUMERIC,
+  p_reference     TEXT
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_txn_id UUID;
+BEGIN
+  -- Credit user wallet
+  UPDATE public.profiles
+  SET balance = balance + p_amount
+  WHERE id = p_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User profile not found for deposit';
+  END IF;
+
+  -- Insert completed deposit transaction
+  INSERT INTO public.transactions (from_user_id, to_user_id, amount, type, status, reference)
+  VALUES (NULL, p_user_id, p_amount, 'deposit', 'completed', p_reference)
+  RETURNING id INTO v_txn_id;
+
+  RETURN v_txn_id;
+END;
+$$;
+
+-- Request a withdrawal (Freelancer)
+CREATE OR REPLACE FUNCTION public.request_withdrawal(
+  p_amount        NUMERIC
+)
+RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+  v_txn_id  UUID;
+BEGIN
+  -- Deduct user wallet immediately to prevent double spending
+  UPDATE public.profiles
+  SET balance = balance - p_amount
+  WHERE id = v_user_id AND balance >= p_amount;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Insufficient balance for withdrawal';
+  END IF;
+
+  -- Insert pending withdrawal transaction
+  INSERT INTO public.transactions (from_user_id, to_user_id, amount, type, status)
+  VALUES (v_user_id, NULL, p_amount, 'withdrawal', 'pending')
   RETURNING id INTO v_txn_id;
 
   RETURN v_txn_id;

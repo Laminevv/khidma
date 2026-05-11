@@ -92,7 +92,7 @@ export default function ClientContractPage({ initialContract, userId }: { initia
     setActionLoading(milestone.id)
     const res = await approveAndReleaseAction(contract.id, milestone.id, milestone.amount)
     if (res.success) {
-      const fee = Math.round(milestone.amount * 0.05)
+      const fee = Math.round(milestone.amount * 0.10)
       const net = milestone.amount - fee
       showToast(`✅ تم تحرير ${net.toLocaleString()} دج للمستقل`)
       const updated = contract.milestones.map(m => m.id === milestone.id ? { ...m, status: 'approved', approved_at: new Date().toISOString() } : m)
@@ -304,12 +304,12 @@ export default function ClientContractPage({ initialContract, userId }: { initia
                   <span className="font-medium text-gray-900">{contract.total_amount?.toLocaleString()} دج</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">رسوم المنصة (5%)</span>
-                  <span className="font-medium text-red-500">- {Math.round((contract.total_amount || 0) * 0.05).toLocaleString()} دج</span>
+                  <span className="text-gray-500">رسوم المنصة (10%)</span>
+                  <span className="font-medium text-red-500">- {Math.round((contract.total_amount || 0) * 0.10).toLocaleString()} دج</span>
                 </div>
                 <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
                   <span className="text-gray-500">صافي المستقل</span>
-                  <span className="font-bold text-emerald-600">{Math.round((contract.total_amount || 0) * 0.95).toLocaleString()} دج</span>
+                  <span className="font-bold text-emerald-600">{Math.round((contract.total_amount || 0) * 0.90).toLocaleString()} دج</span>
                 </div>
               </div>
             </div>
