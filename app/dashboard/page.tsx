@@ -76,8 +76,11 @@ export default function DashboardPage() {
     const amount = parseInt(amountStr)
     if (isNaN(amount) || amount < 10000 || amount > profile.balance) return alert('مبلغ غير صالح')
 
+    const payoutDetails = prompt('أدخل تفاصيل الدفع (RIP/CCP):')
+    if (!payoutDetails || payoutDetails.trim().length < 5) return alert('تفاصيل الدفع غير صالحة')
+
     setWithdrawLoading(true)
-    const res = await requestWithdrawalAction(amount)
+    const res = await requestWithdrawalAction(amount, payoutDetails)
     if (res.success) {
       alert('✅ تم تقديم طلب السحب بنجاح')
       setProfile({ ...profile, balance: profile.balance - amount })

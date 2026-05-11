@@ -632,7 +632,8 @@ $$;
 
 -- Request a withdrawal (Freelancer)
 CREATE OR REPLACE FUNCTION public.request_withdrawal(
-  p_amount        NUMERIC
+  p_amount        NUMERIC,
+  p_metadata      JSONB DEFAULT '{}'::jsonb
 )
 RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -649,8 +650,8 @@ BEGIN
   END IF;
 
   -- Insert pending withdrawal transaction
-  INSERT INTO public.transactions (from_user_id, to_user_id, amount, type, status)
-  VALUES (v_user_id, NULL, p_amount, 'withdrawal', 'pending')
+  INSERT INTO public.transactions (from_user_id, to_user_id, amount, type, status, metadata)
+  VALUES (v_user_id, NULL, p_amount, 'withdrawal', 'pending', p_metadata)
   RETURNING id INTO v_txn_id;
 
   RETURN v_txn_id;
