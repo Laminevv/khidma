@@ -85,6 +85,9 @@ khidma2/
 11. **Notifications** — إشعارات فورية + جرس + عداد غير مقروء + تنبيهات أحداث تلقائية
 12. **Mobile Optimization** — واجهة مستخدم متجاوبة مع الهواتف الذكية (قائمة همبرغر، جداول قابلة للتمرير، الخ)
 13. **Wallet & Withdrawals** — صفحة المحفظة مع سجل المعاملات وطلبات السحب (CCP/BaridiMob)
+14. **File Uploads & Storage** — رفع المرفقات (Supabase Storage) في المشاريع والعروض والمحادثات
+15. **Settings & Portfolios** — صفحة الإعدادات لتحديث البيانات الشخصية وإضافة أعمال سابقة للمعرض
+
 
 ## ما تبقى ⏳
 - Deploy على Vercel
@@ -148,6 +151,28 @@ npm install          # تثبيت المكتبات
   - Reviews from `reviews` table (where `reviewee_id = profile.id`)
   - Current user auth state (for conditional UI: "Send Message" / "Hire Me" buttons)
 - **UI/UX**:
+## Supabase Storage & Portfolios Sprint (Recent Updates)
+
+### Storage Infrastructure
+- Created **`attachments`** bucket for jobs, proposals, and chat attachments.
+- Created **`avatars`** bucket for user profile pictures.
+- Implemented robust **RLS policies** for both buckets to allow public read access while restricting write/update/delete actions to authenticated owners.
+
+### Reusable FileUpload Component
+- Built a highly reusable `FileUpload.tsx` component that interacts with Supabase Storage.
+- Features dual UI variants:
+  - `variant="default"`: Large drag-and-drop zone with visual feedback.
+  - `variant="icon"`: Minimalist paperclip icon specifically tailored for chat interfaces.
+- Integrates multiple file support, size validation (e.g., max 10MB), and public URL generation.
+
+### Settings Page & Portfolios (`app/settings/page.tsx`)
+- Developed a dedicated Settings page where users can update their profile metadata (Bio, Skills, Hourly Rate, Wilaya).
+- Integrated `avatars` bucket for profile picture uploads.
+- **Portfolio Database Integration**: Added `portfolio_items` table in Supabase. Freelancers can upload images (via `FileUpload`) and add details (title, description, link) to build their portfolio.
+
+### Public Profile Enhancements
+- Updated `app/profile/[username]` and `ClientProfilePage.tsx` to beautifully render the freelancer's portfolio grid.
+- Designed an elegant empty state if the freelancer has not uploaded any portfolio items yet.
   - Premium dark-mode design (`bg-gray-950`) with glassmorphic hero section
   - Gradient avatar with emerald accent ring and online indicator
   - Skills displayed as styled tags with hover effects

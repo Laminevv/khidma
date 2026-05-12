@@ -75,7 +75,14 @@ export default async function ProfilePage({ params }: PageProps) {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    // 4. Get current logged-in user (optional — for "Hire Me" button visibility)
+    // 4. Fetch portfolio items
+    const { data: portfolios } = await supabase
+      .from('portfolio_items')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+
+    // 5. Get current logged-in user (optional — for "Hire Me" button visibility)
     const { data: { user: currentUser } } = await supabase.auth.getUser()
 
     // Format contracts to normalize the client relation
@@ -106,6 +113,7 @@ export default async function ProfilePage({ params }: PageProps) {
         profile={profile}
         completedContracts={formattedContracts}
         reviews={formattedReviews}
+        portfolios={portfolios || []}
         currentUserId={currentUser?.id || null}
       />
     )

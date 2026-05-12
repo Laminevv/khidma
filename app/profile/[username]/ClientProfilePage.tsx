@@ -53,10 +53,19 @@ interface Review {
   reviewer: { username: string; full_name: string } | null
 }
 
+interface PortfolioItem {
+  id: string
+  title: string
+  description: string | null
+  image_url: string
+  project_link: string | null
+}
+
 interface ClientProfilePageProps {
   profile: Profile
   completedContracts: CompletedContract[]
   reviews: Review[]
+  portfolios: PortfolioItem[]
   currentUserId: string | null
 }
 
@@ -89,7 +98,7 @@ function StarRating({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md
 }
 
 // ── Main Component ──
-export default function ClientProfilePage({ profile, completedContracts, reviews, currentUserId }: ClientProfilePageProps) {
+export default function ClientProfilePage({ profile, completedContracts, reviews, portfolios, currentUserId }: ClientProfilePageProps) {
   const isOwnProfile = currentUserId === profile.id
   const isFreelancer = profile.role === 'freelancer' || profile.role === 'both'
   const memberSince = new Date(profile.created_at).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' })
@@ -256,6 +265,46 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
 
           {/* ── Right Column: Projects + Reviews ── */}
           <div className="lg:col-span-2 space-y-5 sm:space-y-6">
+
+            {/* Portfolio Grid */}
+            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <span className="text-base">🎨</span> معرض الأعمال
+                </h2>
+                {portfolios && portfolios.length > 0 && (
+                  <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-full">
+                    {portfolios.length} أعمال
+                  </span>
+                )}
+              </div>
+              
+              {!portfolios || portfolios.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-5xl mb-3 opacity-30">🖼️</div>
+                  <p className="text-gray-500 text-sm">لم يقم بإضافة أي أعمال لمعرضه بعد</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {portfolios.map(item => (
+                    <div key={item.id} className="group border border-gray-800/60 rounded-xl overflow-hidden bg-gray-800/20 hover:border-emerald-500/30 transition-all">
+                      <div className="aspect-video w-full relative overflow-hidden bg-gray-800">
+                        <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-bold text-gray-200 text-sm mb-1 truncate group-hover:text-emerald-400 transition-colors">{item.title}</h3>
+                        {item.description && <p className="text-gray-500 text-xs line-clamp-2 mb-3">{item.description}</p>}
+                        {item.project_link && (
+                          <a href={item.project_link} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 text-xs font-medium inline-flex items-center gap-1 transition-colors">
+                            <span>🔗</span> عرض المشروع
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Completed Projects */}
             <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">

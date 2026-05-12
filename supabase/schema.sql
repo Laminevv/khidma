@@ -735,3 +735,31 @@ USING (
   bucket_id = 'attachments' 
   AND owner = auth.uid()
 );
+
+-- ============================================================
+--  PORTFOLIOS & AVATARS
+-- ============================================================
+
+-- Ensure the 'avatars' bucket exists
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Avatars RLS
+CREATE POLICY "Public Access Avatars" ON storage.objects FOR SELECT USING ( bucket_id = 'avatars' );
+CREATE POLICY "Auth Upload Avatars" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'avatars' AND auth.role() = 'authenticated' );
+CREATE POLICY "Owner Update Avatars" ON storage.objects FOR UPDATE USING ( bucket_id = 'avatars' AND owner = auth.uid() );
+CREATE POLICY "Owner Delete Avatars" ON storage.objects FOR DELETE USING ( bucket_id = 'avatars' AND owner = auth.uid() );
+
+-- Portfolio Items Table
+CREATE TABLE public.portfolio_items (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id      UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL,
+  description  TEXT,
+  image_url    TEXT NOT NULL,
+  project_link TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_portfolio_user_id ON public.portfolio_items(user_id);
