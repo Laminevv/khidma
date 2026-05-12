@@ -32,7 +32,7 @@ function RegisterForm() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,6 +42,7 @@ function RegisterForm() {
           role,
           active_role: role,
         },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -55,8 +56,15 @@ function RegisterForm() {
       return
     }
 
+    if (data.session === null) {
+      // Email confirmation required
+      setSuccess(true)
+      setLoading(false)
+      return
+    }
+
+    // Fallback automatic login if confirmation is disabled
     const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
-    
     if (loginError) {
       setSuccess(true)
       setLoading(false)
