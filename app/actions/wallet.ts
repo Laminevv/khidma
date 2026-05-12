@@ -38,6 +38,7 @@ export async function requestWithdrawalAction(amount: number, payoutDetails: str
     }
 
     revalidatePath('/dashboard')
+    revalidatePath('/wallet')
     return { success: true }
   } catch (error) {
     console.error('requestWithdrawalAction unexpected error:', error)

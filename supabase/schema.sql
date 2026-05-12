@@ -524,7 +524,9 @@ CREATE POLICY "skills_admin_write" ON public.skills_catalog FOR ALL USING (publi
 -- ============================================================
 --  ADMIN DASHBOARD VIEW  (only accessible via is_admin())
 -- ============================================================
-CREATE OR REPLACE VIEW public.admin_overview AS
+DROP VIEW IF EXISTS public.admin_overview;
+
+CREATE OR REPLACE VIEW public.admin_overview WITH (security_invoker = true) AS
 SELECT
   (SELECT COUNT(*) FROM public.profiles WHERE NOT is_admin)                    AS total_users,
   (SELECT COUNT(*) FROM public.profiles WHERE created_at > NOW() - INTERVAL '30 days') AS new_users_30d,

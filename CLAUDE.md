@@ -84,6 +84,7 @@ khidma2/
 10. **Reviews & Ratings** — نظام تقييم 1-5 نجوم + تعليق عند إكمال العقد
 11. **Notifications** — إشعارات فورية + جرس + عداد غير مقروء + تنبيهات أحداث تلقائية
 12. **Mobile Optimization** — واجهة مستخدم متجاوبة مع الهواتف الذكية (قائمة همبرغر، جداول قابلة للتمرير، الخ)
+13. **Wallet & Withdrawals** — صفحة المحفظة مع سجل المعاملات وطلبات السحب (CCP/BaridiMob)
 
 ## ما تبقى ⏳
 - Deploy على Vercel
@@ -91,7 +92,7 @@ khidma2/
 - ~~صفحة Profile للمستقل~~ ✅ تم
 - ~~نظام التقييمات (Reviews)~~ ✅ تم
 - ~~نظام الإشعارات (Notifications)~~ ✅ تم
-- صفحة المحفظة (Wallet)
+- ~~صفحة المحفظة (Wallet)~~ ✅ تم
 
 ## مشاكل معروفة وحلولها
 - **input color**: أضف `style={{ color: '#111827', backgroundColor: '#ffffff' }}` لكل input
@@ -267,3 +268,38 @@ $$;
 - **Design Tokens**:
   - Strictly maintained the Green (`emerald-500`) and White (`bg-white` / `bg-gray-50`) palette.
   - Replaced hard-coded `px-6` with responsive `px-4 sm:px-6` across container elements.
+
+## Freelancer Wallet & Withdrawal System Sprint
+
+### Architecture
+- **Server Component**: `app/wallet/page.tsx` — Server-side data fetching (profile balance, transaction history)
+- **Client Component**: `app/wallet/ClientWalletPage.tsx` — Interactive UI with withdrawal form
+- **Server Action**: `app/actions/wallet.ts` — `requestWithdrawalAction` (already existed, enhanced with `/wallet` revalidation)
+- **Database RPC**: `request_withdrawal` — Atomic PostgreSQL function that deducts balance and creates pending transaction
+
+### Route: `/wallet`
+- **Data Fetching** (Server-side):
+  - Profile from `profiles` table (balance, role, username)
+  - Transactions from `transactions` table (where user is `from_user_id` or `to_user_id`, last 50)
+- **Auth**: Redirects to `/auth/login` if not authenticated
+
+### UI Components
+- **Balance Card**: Emerald gradient card with available balance and action buttons (withdraw for freelancers, fund for clients)
+- **Stats Grid**: 4 cards showing total deposits, total earnings, total withdrawals, and pending count
+- **Withdrawal Modal**: Form with amount input (min 10,000 DZD), payout details field (CCP/BaridiMob RIP), full client-side + server-side validation, success confirmation animation
+- **Transaction History Table**: Scrollable table with type icons/labels, amounts (color-coded: green for credits, dark for debits), fees, status badges, and dates
+- **Responsive**: Mobile-first with hamburger menu, `overflow-x-auto` table wrapper
+
+### Validation (Client + Server)
+- Amount must be numeric, ≥ 10,000 DZD
+- Amount must not exceed available balance
+- Payout details must be non-empty string, minimum 5 characters
+- Server-side auth verification before RPC call
+- Database-level balance check via `request_withdrawal` RPC (prevents double-spending)
+
+### Design
+- Strictly follows White & Green (`emerald-500`) theme
+- RTL layout with Tajawal font
+- Matches dashboard navbar pattern (desktop + mobile hamburger)
+- `style={{ color: '#111827', backgroundColor: '#ffffff' }}` on inputs per project convention
+
