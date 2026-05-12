@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendNotificationAction } from './notifications'
 
 export async function confirmPayoutAction(transactionId: string) {
   try {
@@ -31,7 +32,7 @@ export async function confirmPayoutAction(transactionId: string) {
     // 2. Fetch the transaction
     const { data: txn, error: txnError } = await supabase
       .from('transactions')
-      .select('id, metadata, status')
+      .select('id, from_user_id, amount, metadata, status')
       .eq('id', transactionId)
       .single()
 
@@ -64,7 +65,20 @@ export async function confirmPayoutAction(transactionId: string) {
       return { success: false, error: 'Failed to confirm payout. Please try again.' }
     }
 
+    // Notify the freelancer that their withdrawal has been processed
+    if (txn.from_user_id) {
+      await sendNotificationAction(
+        txn.from_user_id,
+        'withdrawal_completed',
+        'تم تحويل أموالك بنجاح! 🎉',
+        `تم تحويل مبلغ ${txn.amount?.toLocaleString()} دج إلى حسابك. شكراً لاستخدامك خدمة.dz`,
+        '/wallet'
+      )
+    }
+
     revalidatePath('/admin/payments')
+    revalidatePath('/admin/withdrawals')
+    revalidatePath('/wallet')
     return { success: true }
   } catch (error) {
     console.error('confirmPayoutAction unexpected error:', error)

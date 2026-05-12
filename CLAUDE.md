@@ -303,3 +303,23 @@ $$;
 - Matches dashboard navbar pattern (desktop + mobile hamburger)
 - `style={{ color: '#111827', backgroundColor: '#ffffff' }}` on inputs per project convention
 
+## Admin Withdrawal Management Sprint
+
+### Architecture
+- **Route**: `app/admin/withdrawals/page.tsx`
+- **Component**: `AdminWithdrawalsPage` (Client Component to handle auth redirects via client-side Supabase client).
+- **Server Action**: Enhanced `confirmPayoutAction` in `app/actions/admin.ts`.
+
+### Features
+- **Data Fetching**: Fetches pending transactions of type `withdrawal` using a join with `profiles` to get freelancer details (name and username).
+- **UI Components**:
+  - Statistics card showing total pending withdrawals amount and count.
+  - Responsive table displaying Freelancer info, Amount, Payout Details (CCP/BaridiMob RIP), Date, and the action button.
+- **Approve Payout Action**:
+  - Admin clicks "تأكيد الدفع ✅".
+  - Triggers `confirmPayoutAction` which verifies Admin role.
+  - Updates transaction status to `completed` and logs the resolver (`resolved_by`, `resolved_at`).
+  - **Notification**: Automatically sends a `withdrawal_completed` notification to the freelancer.
+  - Triggers `revalidatePath` for `/admin/payments`, `/admin/withdrawals`, and `/wallet`.
+- **Theme**: Maintained the White & Green theme matching the admin dashboard pattern.
+- **Admin Dashboard Link**: Added a quick action link to the Withdrawals page in `AdminContent.tsx`.
