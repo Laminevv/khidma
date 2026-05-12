@@ -280,3 +280,60 @@ export async function submitReviewAction(
     return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
 }
+
+export async function raiseDisputeAction(contractId: string, reason: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user || authError) return { success: false, error: 'Unauthorized' }
+
+    if (!contractId || !reason || reason.trim() === '') {
+      return { success: false, error: 'Reason is required' }
+    }
+
+    // 1. Verify contract ownership
+    const { data: contract, error: contractError } = await supabase
+      .from('contracts')
+      .select('id, status, client_id, freelancer_id')
+      .eq('id', contractId)
+      .single()
+
+    if (contractError || !contract) return { success: false, error: 'Contract not found' }
+    if (contract.client_id !== user.id && contract.freelancer_id !== user.id) return { success: false, error: 'Unauthorized' }
+    if (contract.status === 'completed' || contract.status === 'disputed' || contract.status === 'cancelled') {
+      return { success: false, error: `Cannot raise dispute. Contract status is ${contract.status}` }
+    }
+
+    // 2. Insert Dispute
+    const { error: insertError } = await supabase
+      .from('disputes')
+      .insert({
+        contract_id: contractId,
+        initiator_id: user.id,
+        reason: reason.trim(),
+        status: 'open'
+      })
+
+    if (insertError) {
+      console.error('Dispute insert error:', insertError)
+      return { success: false, error: 'Failed to create dispute.' }
+    }
+
+    // 3. Update Contract status to 'disputed'
+    const { error: updateError } = await supabase
+      .from('contracts')
+      .update({ status: 'disputed' })
+      .eq('id', contractId)
+
+    if (updateError) {
+      console.error('Contract update error:', updateError)
+      return { success: false, error: 'Dispute created but failed to update contract status.' }
+    }
+
+    revalidatePath(`/contracts/${contractId}`)
+    return { success: true }
+  } catch (error) {
+    console.error('raiseDisputeAction error:', error)
+    return { success: false, error: 'An unexpected error occurred.' }
+  }
+}

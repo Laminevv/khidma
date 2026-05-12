@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { lockFundsAction, approveAndReleaseAction, submitReviewAction } from './actions'
+import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisputeAction } from './actions'
 
 interface Milestone {
   id: string
@@ -101,6 +101,11 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewLoading, setReviewLoading] = useState(false)
+
+  // Dispute state
+  const [showDisputeModal, setShowDisputeModal] = useState(false)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [disputeLoading, setDisputeLoading] = useState(false)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -210,6 +215,24 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
     setReviewLoading(false)
   }
 
+  const handleRaiseDispute = async () => {
+    if (!disputeReason.trim()) {
+      showToast('يرجى كتابة سبب النزاع', 'error')
+      return
+    }
+    setDisputeLoading(true)
+    const res = await raiseDisputeAction(contract.id, disputeReason)
+    if (res.success) {
+      showToast('✅ تم فتح النزاع بنجاح')
+      setContract({ ...contract, status: 'disputed' })
+      setShowDisputeModal(false)
+      setDisputeReason('')
+    } else {
+      showToast(res.error || 'حدث خطأ', 'error')
+    }
+    setDisputeLoading(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Toast */}
@@ -283,8 +306,8 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : 'bg-yellow-50 text-yellow-700'}`}>
-                  {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status}
+                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : contract.status === 'disputed' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                  {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status === 'disputed' ? 'في حالة نزاع ⚖️' : contract.status}
                 </span>
                 {contract.jobs && <Link href={`/jobs/${contract.jobs.id}`} className="text-xs text-emerald-600 hover:underline truncate">{contract.jobs.title}</Link>}
               </div>
@@ -301,6 +324,20 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                 </div>
               )}
             </div>
+
+            {contract.status === 'disputed' && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6 text-red-800">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">⚖️</div>
+                  <div>
+                    <h3 className="font-bold text-red-900 mb-1">تم تجميد هذا العقد بسبب نزاع</h3>
+                    <p className="text-sm text-red-700 leading-relaxed">
+                      فريق الإدارة يقوم حالياً بمراجعة العقد وسيتواصل معكم قريباً عبر الرسائل الخاصة للوصول إلى حل يرضي الطرفين.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
               <h2 className="font-semibold text-gray-900 mb-4 sm:mb-5">مراحل التنفيذ والضمان</h2>
@@ -363,7 +400,7 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                           📤 تسليم العمل
                         </button>
                       )}
-                      {isClient && milestone.status === 'submitted' && (
+                      {isClient && milestone.status === 'submitted' && contract.status !== 'disputed' && (
                         <button onClick={() => approveAndRelease(milestone)} disabled={actionLoading === milestone.id}
                           className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 w-full sm:w-auto justify-center">
                           {actionLoading === milestone.id ? '...' : '✅'} الموافقة وتحرير الدفعة
@@ -493,12 +530,60 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             </div>
 
             <Link href={`/messages?user=${isClient ? contract.freelancer_id : contract.client_id}`}
-              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all">
+              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all font-medium">
               💬 مراسلة الطرف الآخر
             </Link>
+
+            {(contract.status === 'active' || contract.status === 'paused') && (
+              <button onClick={() => setShowDisputeModal(true)}
+                className="w-full text-center border border-red-200 text-red-600 py-3 rounded-xl text-sm hover:bg-red-50 transition-all font-medium">
+                ⚖️ رفع نزاع
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* ── Dispute Modal ── */}
+      {showDisputeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md" dir="rtl">
+            <h3 className="font-bold text-gray-900 text-lg mb-2">رفع نزاع</h3>
+            <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+              عند رفع النزاع، سيتم تجميد العقد فوراً. يرجى توضيح المشكلة بالتفصيل وسيقوم فريق الإدارة بالتدخل في أقرب وقت.
+            </p>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">سبب النزاع <span className="text-red-500">*</span></label>
+              <textarea
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                placeholder="اشرح المشكلة بالتفصيل لكي يتمكن الفريق من المساعدة..."
+                rows={4}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400 resize-none"
+                style={{ color: '#111827' }}
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleRaiseDispute}
+                disabled={disputeLoading || !disputeReason.trim()}
+                className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+              >
+                {disputeLoading ? <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> : '⚖️'}
+                {disputeLoading ? 'جارٍ الإرسال...' : 'تأكيد رفع النزاع'}
+              </button>
+              <button
+                onClick={() => { setShowDisputeModal(false); setDisputeReason('') }}
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Review Modal ── */}
       {showReviewModal && (

@@ -763,3 +763,20 @@ CREATE TABLE public.portfolio_items (
 );
 
 CREATE INDEX idx_portfolio_user_id ON public.portfolio_items(user_id);
+
+-- ============================================================
+--  DISPUTES
+-- ============================================================
+CREATE TABLE public.disputes (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  contract_id     UUID NOT NULL REFERENCES public.contracts(id),
+  initiator_id    UUID NOT NULL REFERENCES public.profiles(id),
+  reason          TEXT NOT NULL,
+  status          dispute_status NOT NULL DEFAULT 'open',
+  resolution      TEXT,
+  resolved_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_disputes_contract_id ON public.disputes(contract_id);
+CREATE INDEX idx_disputes_status ON public.disputes(status);
