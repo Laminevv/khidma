@@ -695,3 +695,43 @@ INSERT INTO public.skills_catalog (name_ar, name_fr, name_en, category) VALUES
   ('الذكاء الاصطناعي',    'Intelligence Artificielle', 'Artificial Intelligence', 'development'),
   ('تصميم الشعار',         'Design de Logo',           'Logo Design',          'design'),
   ('إدارة المشاريع',       'Gestion de Projet',        'Project Management',   'business');
+
+-- ============================================================
+--  STORAGE BUCKETS & SECURITY (Supabase Storage)
+-- ============================================================
+
+-- Ensure the 'attachments' bucket exists (for jobs, proposals, messages)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('attachments', 'attachments', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS Policies for 'attachments' bucket
+
+-- 1. Allow public to READ files (so users can view attachments in public job postings or messages if they have access to the UI)
+CREATE POLICY "Public Access" 
+ON storage.objects FOR SELECT 
+USING ( bucket_id = 'attachments' );
+
+-- 2. Allow authenticated users to UPLOAD files
+CREATE POLICY "Authenticated users can upload files" 
+ON storage.objects FOR INSERT 
+WITH CHECK (
+  bucket_id = 'attachments' 
+  AND auth.role() = 'authenticated'
+);
+
+-- 3. Allow users to UPDATE their own files
+CREATE POLICY "Users can update own files" 
+ON storage.objects FOR UPDATE 
+USING (
+  bucket_id = 'attachments' 
+  AND owner = auth.uid()
+);
+
+-- 4. Allow users to DELETE their own files
+CREATE POLICY "Users can delete own files" 
+ON storage.objects FOR DELETE 
+USING (
+  bucket_id = 'attachments' 
+  AND owner = auth.uid()
+);

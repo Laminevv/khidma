@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import FileUpload from '@/app/components/FileUpload'
 
 const CATEGORIES = [
   { value: 'development', label: 'تطوير برمجي' },
@@ -36,6 +37,7 @@ export default function NewJobPage() {
     budget_max: '',
     deadline: '',
     required_skills: [] as string[],
+    attachments: [] as string[],
   })
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function NewJobPage() {
         budget_max: form.budget_max ? Number(form.budget_max) : null,
         deadline: form.deadline || null,
         required_skills: form.required_skills,
+        attachments: form.attachments,
         status: 'open',
       })
       .select()
@@ -294,6 +297,20 @@ export default function NewJobPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Attachments */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+              مرفقات المشروع <span className="text-gray-400 font-normal text-xs">(اختياري)</span>
+            </label>
+            <p className="text-xs text-gray-400 mb-4">أرفق ملفات مثل (PDF, صور, ملفات Word) لمساعدة المستقلين على فهم متطلباتك.</p>
+            <FileUpload 
+              bucketName="attachments" 
+              folderPath={`jobs/${userId}`} 
+              onUploadComplete={(urls) => setForm({ ...form, attachments: urls })}
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+            />
           </div>
 
           {/* Submit */}

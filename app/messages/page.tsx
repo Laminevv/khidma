@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import FileUpload from '@/app/components/FileUpload'
 
 interface Message {
   id: string
@@ -11,6 +12,7 @@ interface Message {
   sender_id: string
   receiver_id: string
   content: string
+  attachments?: string[]
   created_at: string
   is_read: boolean
 }
@@ -49,6 +51,7 @@ function MessagesContent() {
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
+  const [attachments, setAttachments] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -173,7 +176,7 @@ function MessagesContent() {
   }
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUser || !activeConv || sending) return
+    if ((!newMessage.trim() && attachments.length === 0) || !currentUser || !activeConv || sending) return
     setSending(true)
 
     const roomId = getRoomId(currentUser.id, activeConv.other_user_id)
@@ -183,15 +186,17 @@ function MessagesContent() {
       sender_id: currentUser.id,
       receiver_id: activeConv.other_user_id,
       content: newMessage.trim(),
+      attachments: attachments.length > 0 ? attachments : null,
     }).select().single()
 
     setConversations(prev => prev.map(c =>
       c.other_user_id === activeConv.other_user_id
-        ? { ...c, last_message: newMessage.trim(), last_sent_at: new Date().toISOString() }
+        ? { ...c, last_message: attachments.length > 0 && !newMessage.trim() ? '📎 مرفق' : newMessage.trim(), last_sent_at: new Date().toISOString() }
         : c
     ))
 
     setNewMessage('')
+    setAttachments([])
     setSending(false)
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
@@ -303,7 +308,25 @@ function MessagesContent() {
                         <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm ${
                           isMe ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'
                         }`}>
-                          <p className="leading-relaxed">{msg.content}</p>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <div className="flex flex-col gap-1.5 mb-2">
+                              {msg.attachments.map((url, idx) => {
+                                const fileName = url.split('/').pop() || `ملف ${idx + 1}`
+                                const isImage = url.match(/\.(jpeg|jpg|gif|png)$/) != null
+                                return isImage ? (
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                                    <img src={url} alt="attachment" className="rounded-xl max-w-full h-auto object-cover border border-black/10" style={{ maxHeight: '200px' }} />
+                                  </a>
+                                ) : (
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border ${isMe ? 'bg-white/20 border-white/20 text-white hover:bg-white/30' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                                    <span>📎</span>
+                                    <span className="truncate" dir="ltr">{fileName}</span>
+                                  </a>
+                                )
+                              })}
+                            </div>
+                          )}
+                          {msg.content && <p className="leading-relaxed">{msg.content}</p>}
                           <p className={`text-xs mt-1 ${isMe ? 'text-emerald-100' : 'text-gray-400'}`}>
                             {new Date(msg.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                             {isMe && <span className="mr-1">{msg.is_read ? ' ✓✓' : ' ✓'}</span>}
@@ -316,15 +339,34 @@ function MessagesContent() {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 border-t border-gray-100">
+              <div className="p-4 border-t border-gray-100 relative">
+                {attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {attachments.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-xs">
+                        <span className="truncate max-w-[100px]" dir="ltr">{url.split('/').pop()}</span>
+                        <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-emerald-500 hover:text-emerald-700 font-bold ml-1">×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
+                  <div className="w-11">
+                    <FileUpload 
+                      bucketName="attachments"
+                      folderPath={`messages/${getRoomId(currentUser?.id, activeConv.other_user_id)}`}
+                      onUploadComplete={(urls) => setAttachments(urls)}
+                      variant="icon"
+                      existingFiles={attachments}
+                    />
+                  </div>
                   <input type="text" value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
                     placeholder="اكتب رسالة..."
                     className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }} />
-                  <button onClick={sendMessage} disabled={!newMessage.trim() || sending}
+                  <button onClick={sendMessage} disabled={(!newMessage.trim() && attachments.length === 0) || sending}
                     className="w-11 h-11 bg-emerald-500 text-white rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-colors disabled:opacity-50 flex-shrink-0">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { sendNotificationAction } from '@/app/actions/notifications'
+import FileUpload from '@/app/components/FileUpload'
 
 function timeAgo(date: string) {
   const diff = Date.now() - new Date(date).getTime()
@@ -21,6 +22,7 @@ interface Proposal {
   bid_amount: number
   delivery_days: number
   status: string
+  attachments: string[]
   created_at: string
   profiles: { username: string; full_name: string; rating: number; total_reviews: number }
 }
@@ -40,6 +42,7 @@ export default function JobDetailPage() {
     cover_letter: '',
     bid_amount: '',
     delivery_days: '',
+    attachments: [] as string[],
   })
 
   useEffect(() => {
@@ -89,6 +92,7 @@ export default function JobDetailPage() {
       cover_letter: proposal.cover_letter,
       bid_amount: Number(proposal.bid_amount),
       delivery_days: Number(proposal.delivery_days),
+      attachments: proposal.attachments,
     })
 
     if (!error) {
@@ -228,10 +232,27 @@ export default function JobDetailPage() {
                 {job.deadline && <span>⏰ ينتهي {new Date(job.deadline).toLocaleDateString('ar-DZ')}</span>}
               </div>
 
-              <div className="border-t border-gray-100 pt-5">
+              <div className="border-t border-gray-100 pt-5 mt-5">
                 <h2 className="font-semibold text-gray-900 mb-3">الوصف</h2>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
               </div>
+
+              {job.attachments && job.attachments.length > 0 && (
+                <div className="border-t border-gray-100 pt-5 mt-5">
+                  <h2 className="font-semibold text-gray-900 mb-3">مرفقات المشروع</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {job.attachments.map((url: string, idx: number) => {
+                      const fileName = url.split('/').pop() || `Attachment ${idx + 1}`
+                      return (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl text-sm border border-emerald-100 hover:bg-emerald-100 transition-colors">
+                          <span>📎</span>
+                          <span className="truncate max-w-[150px]" dir="ltr">{fileName}</span>
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {job.required_skills?.length > 0 && (
                 <div className="border-t border-gray-100 pt-5 mt-5">
@@ -276,6 +297,15 @@ export default function JobDetailPage() {
                         placeholder="7" required min="1"
                         className={inputClass} style={{ color: '#111827' }} />
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">مرفقات العرض (اختياري)</label>
+                    <FileUpload 
+                      bucketName="attachments" 
+                      folderPath={`proposals/${user?.id}`} 
+                      onUploadComplete={(urls) => setProposal({ ...proposal, attachments: urls })}
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+                    />
                   </div>
                   <div className="flex gap-3">
                     <button type="submit" disabled={submitting}
@@ -338,6 +368,20 @@ export default function JobDetailPage() {
                       </div>
 
                       <p className="text-sm text-gray-600 mb-4 leading-relaxed">{prop.cover_letter}</p>
+
+                      {prop.attachments && prop.attachments.length > 0 && (
+                        <div className="mb-4 flex flex-wrap gap-2">
+                          {prop.attachments.map((url: string, idx: number) => {
+                            const fileName = url.split('/').pop() || `Attachment ${idx + 1}`
+                            return (
+                              <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg text-xs border border-gray-200 hover:bg-gray-100 hover:text-emerald-600 transition-colors">
+                                <span>📎</span>
+                                <span className="truncate max-w-[120px]" dir="ltr">{fileName}</span>
+                              </a>
+                            )
+                          })}
+                        </div>
+                      )}
 
                       {prop.status === 'accepted' ? (
                         <span className="text-sm text-emerald-600 font-medium">✅ تم قبول هذا العرض</span>
