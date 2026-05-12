@@ -88,7 +88,7 @@ function StarRating({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md
       {[1, 2, 3, 4, 5].map((star) => (
         <span
           key={star}
-          className={star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-600'}
+          className={star <= Math.round(rating) ? 'text-amber-400' : 'text-gray-300'}
         >
           ★
         </span>
@@ -104,31 +104,29 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
   const memberSince = new Date(profile.created_at).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long' })
 
   return (
-    <div className="min-h-screen bg-gray-950" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* ── Navbar ── */}
-      <nav className="bg-gray-900/80 backdrop-blur-xl border-b border-gray-800/50 sticky top-0 z-50">
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">← الرجوع</Link>
+          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">← الرجوع</Link>
           <Link href="/" className="flex items-center gap-1.5">
             <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white"/></svg>
             </div>
-            <span className="font-bold text-white text-base">خدمة<span className="text-emerald-400">.dz</span></span>
+            <span className="font-bold text-gray-900 text-base">خدمة<span className="text-emerald-500">.dz</span></span>
           </Link>
         </div>
       </nav>
 
       {/* ── Hero / Profile Header ── */}
-      <div className="relative overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-emerald-600/20 via-gray-950/50 to-gray-950" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
+      <div className="relative overflow-hidden bg-white border-b border-gray-100">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-emerald-50 rounded-full blur-3xl" />
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-6 sm:pb-8">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
             {/* Avatar */}
             <div className="relative group">
-              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-4xl sm:text-5xl font-bold shadow-lg shadow-emerald-500/20 ring-4 ring-gray-950/50">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-200 flex items-center justify-center text-emerald-600 text-4xl sm:text-5xl font-bold shadow-sm ring-4 ring-white">
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt={profile.full_name || profile.username} className="w-full h-full rounded-2xl object-cover" />
                 ) : (
@@ -136,32 +134,32 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
                 )}
               </div>
               {/* Online indicator */}
-              <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-emerald-400 rounded-full border-4 border-gray-950" />
+              <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-emerald-400 rounded-full border-4 border-white" />
             </div>
 
             {/* Info */}
             <div className="flex-1 text-center sm:text-right">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">{profile.full_name || profile.username}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{profile.full_name || profile.username}</h1>
                 {isFreelancer && (
-                  <span className="bg-emerald-500/15 text-emerald-400 text-xs font-medium px-3 py-1 rounded-full border border-emerald-500/20">
+                  <span className="bg-emerald-50 text-emerald-600 text-xs font-medium px-3 py-1 rounded-full border border-emerald-100">
                     🧑‍💻 مستقل
                   </span>
                 )}
               </div>
-              <p className="text-gray-400 text-sm mb-3">@{profile.username}</p>
+              <p className="text-gray-500 text-sm mb-3">@{profile.username}</p>
 
               {/* Stats row */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm">
                 {profile.rating > 0 && (
                   <div className="flex items-center gap-1.5">
                     <StarRating rating={profile.rating} size="sm" />
-                    <span className="text-gray-300 font-medium">{profile.rating}</span>
+                    <span className="text-gray-900 font-medium">{profile.rating}</span>
                     <span className="text-gray-500">({profile.total_reviews})</span>
                   </div>
                 )}
                 {profile.wilaya && (
-                  <span className="text-gray-400 flex items-center gap-1">
+                  <span className="text-gray-500 flex items-center gap-1">
                     <span className="text-base">📍</span>
                     {wilayaNames[profile.wilaya] || `ولاية ${profile.wilaya}`}
                   </span>
@@ -178,13 +176,13 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
               <div className="flex flex-col gap-2 mt-2 sm:mt-0">
                 <Link
                   href={`/messages?user=${profile.id}`}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-emerald-500/25 text-center"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors text-center shadow-sm hover:shadow-emerald-500/25"
                 >
                   💬 أرسل رسالة
                 </Link>
                 <Link
                   href="/jobs/new"
-                  className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium border border-gray-700 transition-all text-center"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-2.5 rounded-xl text-sm font-medium transition-colors text-center"
                 >
                   💼 وظّفني
                 </Link>
@@ -193,7 +191,7 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
             {isOwnProfile && (
               <Link
                 href="/dashboard"
-                className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium border border-gray-700 transition-all mt-2 sm:mt-0"
+                className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors mt-2 sm:mt-0"
               >
                 ✏️ تعديل الملف
               </Link>
@@ -203,34 +201,34 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
       </div>
 
       {/* ── Main Content ── */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-5 sm:gap-6">
 
           {/* ── Left Column: Bio + Skills ── */}
           <div className="space-y-5">
             {/* Bio Card */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
-              <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+              <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <span className="text-base">📝</span> نبذة عني
               </h2>
               {profile.bio ? (
-                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
               ) : (
-                <p className="text-gray-500 text-sm italic">لم يتم إضافة نبذة بعد</p>
+                <p className="text-gray-400 text-sm italic">لم يتم إضافة نبذة بعد</p>
               )}
             </div>
 
             {/* Skills Card */}
             {profile.skills && profile.skills.length > 0 && (
-              <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
-                <h2 className="font-semibold text-white mb-3 flex items-center gap-2">
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+                <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <span className="text-base">🛠️</span> المهارات
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {profile.skills.map((skill, i) => (
                     <span
                       key={i}
-                      className="bg-emerald-500/10 text-emerald-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-emerald-500/15 hover:bg-emerald-500/20 transition-colors"
+                      className="bg-emerald-50 text-emerald-700 text-xs font-medium px-3 py-1.5 rounded-lg border border-emerald-100"
                     >
                       {skill}
                     </span>
@@ -240,23 +238,23 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
             )}
 
             {/* Quick Stats Card */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
-              <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <span className="text-base">📊</span> إحصائيات
               </h2>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-                  <div className="text-xl font-bold text-emerald-400">{completedContracts.length}</div>
-                  <div className="text-xs text-gray-400 mt-1">مشروع مكتمل</div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                  <div className="text-xl font-bold text-emerald-600">{completedContracts.length}</div>
+                  <div className="text-xs text-gray-500 mt-1">مشروع مكتمل</div>
                 </div>
-                <div className="bg-gray-800/50 rounded-xl p-3 text-center">
-                  <div className="text-xl font-bold text-amber-400">{profile.total_reviews}</div>
-                  <div className="text-xs text-gray-400 mt-1">تقييم</div>
+                <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                  <div className="text-xl font-bold text-amber-500">{profile.total_reviews}</div>
+                  <div className="text-xs text-gray-500 mt-1">تقييم</div>
                 </div>
                 {profile.hourly_rate && (
-                  <div className="bg-gray-800/50 rounded-xl p-3 text-center col-span-2">
-                    <div className="text-xl font-bold text-white">{profile.hourly_rate.toLocaleString()} <span className="text-sm text-gray-400">دج/ساعة</span></div>
-                    <div className="text-xs text-gray-400 mt-1">السعر بالساعة</div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center col-span-2 border border-gray-100">
+                    <div className="text-xl font-bold text-gray-900">{profile.hourly_rate.toLocaleString()} <span className="text-sm text-gray-500">دج/ساعة</span></div>
+                    <div className="text-xs text-gray-500 mt-1">السعر بالساعة</div>
                   </div>
                 )}
               </div>
@@ -267,35 +265,35 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
           <div className="lg:col-span-2 space-y-5 sm:space-y-6">
 
             {/* Portfolio Grid */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-white flex items-center gap-2">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                   <span className="text-base">🎨</span> معرض الأعمال
                 </h2>
                 {portfolios && portfolios.length > 0 && (
-                  <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-full">
+                  <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-100">
                     {portfolios.length} أعمال
                   </span>
                 )}
               </div>
               
               {!portfolios || portfolios.length === 0 ? (
-                <div className="text-center py-10">
+                <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                   <div className="text-5xl mb-3 opacity-30">🖼️</div>
                   <p className="text-gray-500 text-sm">لم يقم بإضافة أي أعمال لمعرضه بعد</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {portfolios.map(item => (
-                    <div key={item.id} className="group border border-gray-800/60 rounded-xl overflow-hidden bg-gray-800/20 hover:border-emerald-500/30 transition-all">
-                      <div className="aspect-video w-full relative overflow-hidden bg-gray-800">
+                    <div key={item.id} className="group border border-gray-100 rounded-xl overflow-hidden bg-white hover:border-emerald-300 transition-all shadow-sm hover:shadow-md">
+                      <div className="aspect-video w-full relative overflow-hidden bg-gray-50">
                         <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       </div>
                       <div className="p-4">
-                        <h3 className="font-bold text-gray-200 text-sm mb-1 truncate group-hover:text-emerald-400 transition-colors">{item.title}</h3>
+                        <h3 className="font-bold text-gray-900 text-sm mb-1 truncate group-hover:text-emerald-600 transition-colors">{item.title}</h3>
                         {item.description && <p className="text-gray-500 text-xs line-clamp-2 mb-3">{item.description}</p>}
                         {item.project_link && (
-                          <a href={item.project_link} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 text-xs font-medium inline-flex items-center gap-1 transition-colors">
+                          <a href={item.project_link} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 text-xs font-medium inline-flex items-center gap-1 transition-colors">
                             <span>🔗</span> عرض المشروع
                           </a>
                         )}
@@ -307,20 +305,20 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
             </div>
 
             {/* Completed Projects */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-white flex items-center gap-2">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                   <span className="text-base">🏆</span> المشاريع المكتملة
                 </h2>
                 {completedContracts.length > 0 && (
-                  <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2.5 py-1 rounded-full">
+                  <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full border border-emerald-100">
                     {completedContracts.length} مشروع
                   </span>
                 )}
               </div>
 
               {completedContracts.length === 0 ? (
-                <div className="text-center py-10">
+                <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                   <div className="text-5xl mb-3 opacity-30">📂</div>
                   <p className="text-gray-500 text-sm">لا توجد مشاريع مكتملة بعد</p>
                 </div>
@@ -330,16 +328,16 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
                     <Link
                       key={contract.id}
                       href={`/contracts/${contract.id}`}
-                      className="flex items-center justify-between p-4 rounded-xl border border-gray-800/40 bg-gray-800/20 hover:bg-gray-800/40 hover:border-emerald-500/30 transition-all group"
+                      className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-emerald-50 hover:border-emerald-200 transition-all group"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs px-2 py-0.5 rounded-lg font-medium bg-emerald-500/15 text-emerald-400">
+                          <span className="text-xs px-2 py-0.5 rounded-lg font-medium bg-emerald-100 text-emerald-700">
                             مكتمل ✓
                           </span>
                           <span className="text-xs text-gray-500">{timeAgo(contract.updated_at)}</span>
                         </div>
-                        <h3 className="font-medium text-gray-200 text-sm group-hover:text-emerald-400 transition-colors truncate">
+                        <h3 className="font-medium text-gray-900 text-sm group-hover:text-emerald-600 transition-colors truncate">
                           {contract.title}
                         </h3>
                         {contract.client && (
@@ -348,7 +346,7 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
                           </p>
                         )}
                       </div>
-                      <div className="text-sm font-semibold text-emerald-400 mr-4 flex-shrink-0">
+                      <div className="text-sm font-semibold text-emerald-600 mr-4 flex-shrink-0">
                         {contract.total_amount?.toLocaleString()} دج
                       </div>
                     </Link>
@@ -358,35 +356,35 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
             </div>
 
             {/* Reviews */}
-            <div className="bg-gray-900 rounded-2xl border border-gray-800/60 p-5 sm:p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-white flex items-center gap-2">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                   <span className="text-base">⭐</span> التقييمات
                 </h2>
                 {profile.rating > 0 && (
                   <div className="flex items-center gap-2">
                     <StarRating rating={profile.rating} size="sm" />
-                    <span className="text-sm font-bold text-white">{profile.rating}</span>
+                    <span className="text-sm font-bold text-gray-900">{profile.rating}</span>
                   </div>
                 )}
               </div>
 
               {reviews.length === 0 ? (
-                <div className="text-center py-10">
+                <div className="text-center py-10 border-2 border-dashed border-gray-100 rounded-2xl">
                   <div className="text-5xl mb-3 opacity-30">💬</div>
                   <p className="text-gray-500 text-sm">لا توجد تقييمات بعد</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {reviews.map((review) => (
-                    <div key={review.id} className="border border-gray-800/40 rounded-xl p-4 bg-gray-800/20">
+                    <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold flex-shrink-0">
                             {review.reviewer?.full_name?.charAt(0) || '؟'}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-200">
+                            <div className="text-sm font-medium text-gray-900">
                               {review.reviewer?.full_name || 'مستخدم مجهول'}
                             </div>
                             <div className="text-xs text-gray-500">{timeAgo(review.created_at)}</div>
@@ -395,7 +393,7 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
                         <StarRating rating={review.rating} size="sm" />
                       </div>
                       {review.comment && (
-                        <p className="text-sm text-gray-300 leading-relaxed mt-2 pr-12">{review.comment}</p>
+                        <p className="text-sm text-gray-600 leading-relaxed mt-2 pr-12">{review.comment}</p>
                       )}
                     </div>
                   ))}
