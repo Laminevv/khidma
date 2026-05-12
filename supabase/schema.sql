@@ -780,3 +780,12 @@ CREATE TABLE public.disputes (
 
 CREATE INDEX idx_disputes_contract_id ON public.disputes(contract_id);
 CREATE INDEX idx_disputes_status ON public.disputes(status);
+
+-- ============================================================
+--  MUTUAL CANCELLATION
+-- ============================================================
+-- Add cancellation_pending to contract_status enum
+ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'cancellation_pending';
+
+-- Add cancellation_requested_by field to contracts
+ALTER TABLE public.contracts ADD COLUMN IF NOT EXISTS cancellation_requested_by UUID REFERENCES public.profiles(id);

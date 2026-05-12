@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisputeAction } from './actions'
+import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisputeAction, requestCancellationAction, acceptCancellationAction, rejectCancellationAction } from './actions'
 
 interface Milestone {
   id: string
@@ -29,6 +29,7 @@ interface Contract {
   client: { id: string; username: string; full_name: string; balance: number }
   freelancer: { id: string; username: string; full_name: string; balance: number }
   jobs: { id: string; title: string }
+  cancellation_requested_by?: string | null
 }
 
 interface Review {
@@ -233,6 +234,45 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
     setDisputeLoading(false)
   }
 
+  const handleRequestCancellation = async () => {
+    if (!confirm('هل أنت متأكد أنك تريد طلب إلغاء هذا العقد؟ سيتم إرسال الطلب للطرف الآخر للموافقة.')) return
+    setActionLoading('cancel_request')
+    const res = await requestCancellationAction(contract.id)
+    if (res.success) {
+      showToast('✅ تم إرسال طلب الإلغاء للطرف الآخر')
+      setContract({ ...contract, status: 'cancellation_pending', cancellation_requested_by: userId })
+    } else {
+      showToast(res.error || 'حدث خطأ', 'error')
+    }
+    setActionLoading(null)
+  }
+
+  const handleAcceptCancellation = async () => {
+    if (!confirm('هل توافق على إلغاء العقد؟ سيتم إنهاء العقد وإرجاع الأموال المحجوزة لصاحب العمل.')) return
+    setActionLoading('cancel_accept')
+    const res = await acceptCancellationAction(contract.id)
+    if (res.success) {
+      showToast('✅ تم إلغاء العقد بنجاح')
+      setContract({ ...contract, status: 'cancelled' })
+    } else {
+      showToast(res.error || 'حدث خطأ', 'error')
+    }
+    setActionLoading(null)
+  }
+
+  const handleRejectCancellation = async () => {
+    if (!confirm('هل ترفض الإلغاء؟ سيعود العقد لحالته النشطة.')) return
+    setActionLoading('cancel_reject')
+    const res = await rejectCancellationAction(contract.id)
+    if (res.success) {
+      showToast('✅ تم رفض الإلغاء، العقد لا يزال نشطاً')
+      setContract({ ...contract, status: 'active', cancellation_requested_by: null })
+    } else {
+      showToast(res.error || 'حدث خطأ', 'error')
+    }
+    setActionLoading(null)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Toast */}
@@ -306,8 +346,8 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : contract.status === 'disputed' ? 'bg-red-50 text-red-700' : 'bg-yellow-50 text-yellow-700'}`}>
-                  {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status === 'disputed' ? 'في حالة نزاع ⚖️' : contract.status}
+                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : contract.status === 'disputed' ? 'bg-red-50 text-red-700' : contract.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-700' : contract.status === 'cancelled' ? 'bg-gray-200 text-gray-700' : 'bg-yellow-50 text-yellow-700'}`}>
+                  {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status === 'disputed' ? 'في حالة نزاع ⚖️' : contract.status === 'cancellation_pending' ? 'بانتظار الإلغاء ⏳' : contract.status === 'cancelled' ? 'ملغى 🚫' : contract.status}
                 </span>
                 {contract.jobs && <Link href={`/jobs/${contract.jobs.id}`} className="text-xs text-emerald-600 hover:underline truncate">{contract.jobs.title}</Link>}
               </div>
@@ -334,6 +374,38 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                     <p className="text-sm text-red-700 leading-relaxed">
                       فريق الإدارة يقوم حالياً بمراجعة العقد وسيتواصل معكم قريباً عبر الرسائل الخاصة للوصول إلى حل يرضي الطرفين.
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {contract.status === 'cancellation_pending' && (
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 sm:p-6 text-orange-800">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">⏳</div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-orange-900 mb-1">طلب إلغاء ودي</h3>
+                    {contract.cancellation_requested_by === userId ? (
+                      <p className="text-sm text-orange-700 leading-relaxed">
+                        لقد قمت بطلب إلغاء العقد. نحن في انتظار موافقة الطرف الآخر.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-sm text-orange-700 leading-relaxed mb-4">
+                          لقد طلب الطرف الآخر إلغاء هذا العقد بشكل ودي. إذا وافقت، سيتم إنهاء العقد وإرجاع جميع الأموال المحجوزة في نظام الضمان لصاحب العمل فوراً وبدون تدخل الإدارة.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={handleAcceptCancellation} disabled={actionLoading === 'cancel_accept'}
+                            className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
+                            {actionLoading === 'cancel_accept' ? '...' : '✅ أوافق على الإلغاء'}
+                          </button>
+                          <button onClick={handleRejectCancellation} disabled={actionLoading === 'cancel_reject'}
+                            className="bg-white border border-orange-200 text-orange-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-100 disabled:opacity-50">
+                            {actionLoading === 'cancel_reject' ? '...' : '❌ رفض الإلغاء'}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -535,10 +607,16 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             </Link>
 
             {(contract.status === 'active' || contract.status === 'paused') && (
-              <button onClick={() => setShowDisputeModal(true)}
-                className="w-full text-center border border-red-200 text-red-600 py-3 rounded-xl text-sm hover:bg-red-50 transition-all font-medium">
-                ⚖️ رفع نزاع
-              </button>
+              <>
+                <button onClick={handleRequestCancellation} disabled={actionLoading === 'cancel_request'}
+                  className="w-full text-center border border-orange-200 text-orange-600 py-3 rounded-xl text-sm hover:bg-orange-50 transition-all font-medium disabled:opacity-50 mt-2">
+                  {actionLoading === 'cancel_request' ? '...' : '🤝 طلب إلغاء ودي'}
+                </button>
+                <button onClick={() => setShowDisputeModal(true)}
+                  className="w-full text-center border border-red-200 text-red-600 py-3 rounded-xl text-sm hover:bg-red-50 transition-all font-medium mt-2">
+                  ⚖️ رفع نزاع
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -337,3 +337,117 @@ export async function raiseDisputeAction(contractId: string, reason: string) {
     return { success: false, error: 'An unexpected error occurred.' }
   }
 }
+
+export async function requestCancellationAction(contractId: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user || authError) return { success: false, error: 'Unauthorized' }
+
+    const { data: contract } = await supabase.from('contracts').select('client_id, freelancer_id, status').eq('id', contractId).single()
+    if (!contract || (contract.client_id !== user.id && contract.freelancer_id !== user.id)) return { success: false, error: 'Unauthorized' }
+    if (contract.status !== 'active' && contract.status !== 'paused') return { success: false, error: 'Cannot cancel in current state' }
+
+    await supabase.from('contracts').update({ 
+      status: 'cancellation_pending',
+      cancellation_requested_by: user.id 
+    }).eq('id', contractId)
+
+    revalidatePath(`/contracts/${contractId}`)
+    
+    // Notify the other party
+    const targetUserId = user.id === contract.client_id ? contract.freelancer_id : contract.client_id
+    await notifyUser(supabase, targetUserId, user.id, 'cancellation_requested',
+      'طلب إلغاء العقد',
+      'الطرف الآخر يطلب إلغاء العقد بشكل ودي. يرجى مراجعة الطلب.',
+      `/contracts/${contractId}`
+    )
+
+    return { success: true }
+  } catch (error) {
+    console.error('requestCancellationAction error:', error)
+    return { success: false, error: 'Unexpected error' }
+  }
+}
+
+export async function rejectCancellationAction(contractId: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    const { data: contract } = await supabase.from('contracts').select('client_id, freelancer_id, status, cancellation_requested_by').eq('id', contractId).single()
+    if (!contract || contract.status !== 'cancellation_pending') return { success: false, error: 'Invalid state' }
+    if (user.id === contract.cancellation_requested_by) return { success: false, error: 'You cannot reject your own request' }
+
+    await supabase.from('contracts').update({ 
+      status: 'active',
+      cancellation_requested_by: null 
+    }).eq('id', contractId)
+
+    revalidatePath(`/contracts/${contractId}`)
+
+    const targetUserId = contract.cancellation_requested_by
+    await notifyUser(supabase, targetUserId, user.id, 'cancellation_rejected',
+      'تم رفض طلب الإلغاء',
+      'تم رفض طلب الإلغاء الودي. العقد لا يزال نشطاً.',
+      `/contracts/${contractId}`
+    )
+
+    return { success: true }
+  } catch (error) {
+    console.error('rejectCancellationAction error:', error)
+    return { success: false, error: 'Unexpected error' }
+  }
+}
+
+export async function acceptCancellationAction(contractId: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    const { data: contract } = await supabase.from('contracts').select('client_id, freelancer_id, status, cancellation_requested_by, milestones').eq('id', contractId).single()
+    if (!contract || contract.status !== 'cancellation_pending') return { success: false, error: 'Invalid state' }
+    if (user.id === contract.cancellation_requested_by) return { success: false, error: 'You cannot accept your own request' }
+
+    // Refund locked escrow funds back to client
+    const lockedAmount = (contract.milestones as any[]).reduce((sum, m) => {
+      if (m.status === 'in_progress' || m.status === 'submitted') return sum + (m.amount || 0)
+      return sum
+    }, 0)
+
+    if (lockedAmount > 0) {
+      const { data: clientData } = await supabase.from('profiles').select('balance').eq('id', contract.client_id).single()
+      if (clientData) {
+        await supabase.from('profiles').update({ balance: clientData.balance + lockedAmount }).eq('id', contract.client_id)
+        
+        await supabase.from('transactions').insert({
+          from_user_id: contract.client_id,
+          to_user_id: contract.client_id,
+          amount: lockedAmount,
+          type: 'refund',
+          status: 'completed'
+        })
+      }
+    }
+
+    await supabase.from('contracts').update({ 
+      status: 'cancelled'
+    }).eq('id', contractId)
+
+    revalidatePath(`/contracts/${contractId}`)
+
+    const targetUserId = contract.cancellation_requested_by
+    await notifyUser(supabase, targetUserId, user.id, 'cancellation_accepted',
+      'تم قبول طلب الإلغاء',
+      'تم الموافقة على طلب الإلغاء الودي وتم إنهاء العقد.',
+      `/contracts/${contractId}`
+    )
+
+    return { success: true }
+  } catch (error) {
+    console.error('acceptCancellationAction error:', error)
+    return { success: false, error: 'Unexpected error' }
+  }
+}
