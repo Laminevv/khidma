@@ -84,7 +84,8 @@ export async function resolveDisputeAction(disputeId: string, contractId: string
         })
         
         // Update admin overview
-        await supabase.rpc('increment_admin_fees', { p_amount: fee }).catch(() => {})
+        const { error: feeErr } = await supabase.rpc('increment_admin_fees', { p_amount: fee })
+        if (feeErr) console.error('Error incrementing admin fees:', feeErr)
       }
     }
 
@@ -104,21 +105,23 @@ export async function resolveDisputeAction(disputeId: string, contractId: string
     revalidatePath(`/contracts/${contractId}`)
 
     // 5. Notify Users
-    await supabase.rpc('create_notification', {
+    const { error: notifErr1 } = await supabase.rpc('create_notification', {
       p_user_id: contract.client_id,
       p_type: 'dispute_resolved',
       p_title: 'تم الفصل في النزاع',
       p_body: action === 'refund_client' ? 'تم الحكم لصالحك وإعادة الأموال إلى رصيدك.' : 'تم الحكم لصالح المستقل وتسليمه قيمة العقد.',
       p_link: `/contracts/${contractId}`
-    }).catch(() => {})
+    })
+    if (notifErr1) console.error('Notification error 1:', notifErr1)
 
-    await supabase.rpc('create_notification', {
+    const { error: notifErr2 } = await supabase.rpc('create_notification', {
       p_user_id: contract.freelancer_id,
       p_type: 'dispute_resolved',
       p_title: 'تم الفصل في النزاع',
       p_body: action === 'release_freelancer' ? 'تم الحكم لصالحك وتحويل الأموال إلى رصيدك.' : 'تم الحكم لصالح صاحب العمل وإعادة الأموال إليه.',
       p_link: `/contracts/${contractId}`
-    }).catch(() => {})
+    })
+    if (notifErr2) console.error('Notification error 2:', notifErr2)
 
     return { success: true }
   } catch (error) {
