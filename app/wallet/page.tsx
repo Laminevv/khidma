@@ -266,27 +266,12 @@ export default function WalletPage() {
                   </button>
                 )}
                 {isClient && (
-                  <button
-                    onClick={async () => {
-                      const amountStr = prompt('أدخل المبلغ الذي تريد شحنه (دج):', '5000')
-                      if (!amountStr) return
-                      const amount = parseInt(amountStr)
-                      if (isNaN(amount) || amount <= 0) return alert('مبلغ غير صالح')
-                      try {
-                        const res = await fetch('/api/funding/checkout', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ amount })
-                        })
-                        const data = await res.json()
-                        if (data.checkout_url) window.location.href = data.checkout_url
-                        else alert(data.error || 'حدث خطأ')
-                      } catch { alert('حدث خطأ في الاتصال') }
-                    }}
-                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors"
+                  <Link
+                    href="/wallet/deposit"
+                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors inline-block"
                   >
                     ➕ شحن الرصيد
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>

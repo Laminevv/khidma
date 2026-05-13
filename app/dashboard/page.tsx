@@ -50,34 +50,8 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
-  const [fundingLoading, setFundingLoading] = useState(false)
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const handleFund = async () => {
-    const amountStr = prompt('أدخل المبلغ الذي تريد شحنه (دج):', '5000')
-    if (!amountStr) return
-    const amount = parseInt(amountStr)
-    if (isNaN(amount) || amount <= 0) return alert('مبلغ غير صالح')
-
-    setFundingLoading(true)
-    try {
-      const res = await fetch('/api/funding/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      })
-      const data = await res.json()
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url
-      } else {
-        alert(data.error || 'حدث خطأ')
-      }
-    } catch (e) {
-      alert('حدث خطأ في الاتصال')
-    }
-    setFundingLoading(false)
-  }
 
   const handleWithdraw = async () => {
     if (!profile || profile.balance < 10000) return
@@ -329,9 +303,12 @@ export default function DashboardPage() {
               
               <div className="flex flex-col gap-2 mt-4">
                 {isClient && (
-                  <button onClick={handleFund} disabled={fundingLoading} className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors text-center disabled:opacity-70">
-                    {fundingLoading ? 'جاري التحويل...' : '➕ شحن الرصيد'}
-                  </button>
+                  <Link
+                    href="/wallet/deposit"
+                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors text-center inline-block"
+                  >
+                    ➕ شحن الرصيد
+                  </Link>
                 )}
                 
                 {!isClient && (
