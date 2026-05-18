@@ -26,7 +26,7 @@ export type UploadReceiptResult =
 // ─────────────────────────────────────────────────────────────
 // Action 1: Upload receipt file to Supabase Storage
 // ─────────────────────────────────────────────────────────────
-export async function uploadReceiptAction(userId: string, formData: FormData) {
+export async function uploadReceiptAction(userId: string, formData: FormData): Promise<UploadReceiptResult> {
   try {
     const supabase = getAdminSupabase()
 
@@ -75,7 +75,7 @@ export async function uploadReceiptAction(userId: string, formData: FormData) {
 // ─────────────────────────────────────────────────────────────
 // Action 2: Submit deposit request (CCP / BaridiMob)
 // ─────────────────────────────────────────────────────────────
-export async function submitManualDepositAction(userId: string, amount: number, method: string, receiptUrl: string) {
+export async function submitManualDepositAction(userId: string, amount: number, method: string, receiptUrl: string): Promise<DepositResult> {
   try {
     const supabase = getAdminSupabase()
 
@@ -120,7 +120,7 @@ export async function submitManualDepositAction(userId: string, amount: number, 
 // ─────────────────────────────────────────────────────────────
 // Action 3: Initiate Chargily (Edahabia) checkout
 // ─────────────────────────────────────────────────────────────
-export async function initiateChargilyDepositAction(userId: string, amount: number) {
+export async function initiateChargilyDepositAction(userId: string, amount: number): Promise<DepositResult & { checkoutUrl?: string }> {
   try {
     const supabase = getAdminSupabase()
 

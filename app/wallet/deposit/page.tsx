@@ -1,6 +1,6 @@
 'use client'
 import { supabase } from '@/lib/supabase'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -48,6 +48,7 @@ export default function DepositPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [userId, setUserId] = useState<string>('')
   const [method, setMethod] = useState<Method>('ccp')
   const [amount, setAmount] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -55,6 +56,14 @@ export default function DepositPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserId(user.id)
+      }
+    })
+  }, [])
 
   const isManual = method === 'ccp' || method === 'baridimob'
 
@@ -68,6 +77,11 @@ export default function DepositPage() {
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    if (!userId) {
+      setError('يجب تسجيل الدخول أولاً')
+      return
+    }
 
     const numAmount = Number(amount)
     if (!numAmount || numAmount < 1000) {
@@ -110,7 +124,7 @@ export default function DepositPage() {
       const depositResult = await submitManualDepositAction(
         userId,
         numAmount,
-        method,
+        method as 'ccp' | 'baridimob',
         uploadResult.url
       )
 
@@ -195,8 +209,8 @@ export default function DepositPage() {
                   type="button"
                   onClick={() => setMethod(m.id)}
                   className={`p-4 rounded-xl border-2 text-right transition-all ${method === m.id
-                      ? 'border-emerald-500 bg-emerald-50'
-                      : 'border-gray-100 hover:border-gray-200'
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-100 hover:border-gray-200'
                     }`}
                 >
                   <div className="text-2xl mb-2">{m.icon}</div>
@@ -237,8 +251,8 @@ export default function DepositPage() {
                   type="button"
                   onClick={() => setAmount(String(a))}
                   className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${Number(amount) === a
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-200 text-gray-600 hover:border-emerald-300'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-200 text-gray-600 hover:border-emerald-300'
                     }`}
                 >
                   {a.toLocaleString()} دج
@@ -255,7 +269,7 @@ export default function DepositPage() {
               <div>
                 <h2 className="font-semibold text-gray-900 mb-3">تفاصيل الحساب</h2>
                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 space-y-3">
-                  {ACCOUNT_DETAILS[method].map((detail) => (
+                  {ACCOUNT_DETAILS[method as 'ccp' | 'baridimob'].map((detail) => (
                     <div key={detail.label} className="flex items-center justify-between gap-2">
                       <div>
                         <p className="text-xs text-gray-500">{detail.label}</p>
@@ -287,8 +301,8 @@ export default function DepositPage() {
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${file
-                      ? 'border-emerald-400 bg-emerald-50'
-                      : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30'
+                    ? 'border-emerald-400 bg-emerald-50'
+                    : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30'
                     }`}
                 >
                   {file ? (
