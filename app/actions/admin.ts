@@ -86,25 +86,14 @@ export async function confirmPayoutAction(transactionId: string) {
   }
 }
 
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+
 export async function confirmDepositAction(transactionId: string) {
   try {
-    const supabase = await createClient()
-
-    // 1. Verify Authentication & Admin Status
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (!user || authError) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.is_admin) {
-      return { success: false, error: 'Forbidden' }
-    }
+    const supabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
     // 2. Fetch the transaction
     const { data: txn, error: txnError } = await supabase
