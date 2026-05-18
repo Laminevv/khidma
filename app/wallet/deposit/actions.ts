@@ -26,10 +26,7 @@ export type UploadReceiptResult =
 // ─────────────────────────────────────────────────────────────
 // Action 1: Upload receipt file to Supabase Storage
 // ─────────────────────────────────────────────────────────────
-export async function uploadReceiptAction(
-  userId: string,
-  formData: FormData
-): Promise<UploadReceiptResult> {
+export async function uploadReceiptAction(userId: string, formData: FormData) {
   try {
     const supabase = getAdminSupabase()
 
@@ -78,12 +75,7 @@ export async function uploadReceiptAction(
 // ─────────────────────────────────────────────────────────────
 // Action 2: Submit deposit request (CCP / BaridiMob)
 // ─────────────────────────────────────────────────────────────
-export async function submitManualDepositAction(
-  userId: string,
-  amount: number,
-  method: 'ccp' | 'baridimob',
-  receiptUrl: string
-): Promise<DepositResult> {
+export async function submitManualDepositAction(userId: string, amount: number, method: string, receiptUrl: string) {
   try {
     const supabase = getAdminSupabase()
 
@@ -98,9 +90,9 @@ export async function submitManualDepositAction(
 
     // Call secure RPC
     const { data, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id:     userId,
-      p_amount:      amount,
-      p_method:      method,
+      p_user_id: userId,
+      p_amount: amount,
+      p_method: method,
       p_receipt_url: receiptUrl,
     })
 
@@ -128,10 +120,7 @@ export async function submitManualDepositAction(
 // ─────────────────────────────────────────────────────────────
 // Action 3: Initiate Chargily (Edahabia) checkout
 // ─────────────────────────────────────────────────────────────
-export async function initiateChargilyDepositAction(
-  userId: string,
-  amount: number
-): Promise<DepositResult & { checkoutUrl?: string }> {
+export async function initiateChargilyDepositAction(userId: string, amount: number) {
   try {
     const supabase = getAdminSupabase()
 
@@ -147,9 +136,9 @@ export async function initiateChargilyDepositAction(
 
     // Create pending transaction first
     const { data: txnId, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id:     userId,
-      p_amount:      amount,
-      p_method:      'edahabia',
+      p_user_id: userId,
+      p_amount: amount,
+      p_method: 'edahabia',
       p_receipt_url: null,
     })
 
@@ -172,7 +161,7 @@ export async function initiateChargilyDepositAction(
         failure_url: `${process.env.NEXT_PUBLIC_APP_URL}/wallet/deposit?error=payment_failed`,
         webhook_endpoint: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/chargily`,
         metadata: {
-          user_id:        userId,
+          user_id: userId,
           transaction_id: txnId,
         },
         description: `إيداع رصيد — خدمة.dz`,
