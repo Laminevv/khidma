@@ -131,6 +131,7 @@ export async function initiateChargilyDepositAction(userId: string, amount: numb
 
     const chargilyApiKey = process.env.CHARGILY_SECRET_KEY
     if (!chargilyApiKey) {
+      console.error('Chargily API Error: Missing CHARGILY_SECRET_KEY environment variable')
       return { success: false, error: 'بوابة الدفع غير متاحة حالياً' }
     }
 
