@@ -1,28 +1,14 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
 import { revalidatePath } from 'next/cache'
-
 // ─────────────────────────────────────────────────────────────
-// Helper — authenticated server-side Supabase client
+// Helper — Admin Supabase client to bypass RLS since we removed cookies auth
 // ─────────────────────────────────────────────────────────────
-async function getServerSupabase() {
-  const cookieStore = await cookies()
-  return createServerClient(
+function getAdminSupabase() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-        },
-      },
-    }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
 
@@ -41,16 +27,12 @@ export type UploadReceiptResult =
 // Action 1: Upload receipt file to Supabase Storage
 // ─────────────────────────────────────────────────────────────
 export async function uploadReceiptAction(
+  userId: string,
   formData: FormData
 ): Promise<UploadReceiptResult> {
   try {
-    const supabase = await getServerSupabase()
+    const supabase = getAdminSupabase()
 
-    // Verify auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: 'يجب تسجيل الدخول أولاً' }
-    }
 
     const file = formData.get('receipt') as File | null
     if (!file || file.size === 0) {
@@ -69,7 +51,7 @@ export async function uploadReceiptAction(
     }
 
     const ext = file.name.split('.').pop()
-    const filePath = `${user.id}/${Date.now()}.${ext}`
+    const filePath = `${userId}/${Date.now()}.${ext}`
 
     const { data, error: uploadError } = await supabase.storage
       .from('receipts')
@@ -97,18 +79,14 @@ export async function uploadReceiptAction(
 // Action 2: Submit deposit request (CCP / BaridiMob)
 // ─────────────────────────────────────────────────────────────
 export async function submitManualDepositAction(
+  userId: string,
   amount: number,
   method: 'ccp' | 'baridimob',
   receiptUrl: string
 ): Promise<DepositResult> {
   try {
-    const supabase = await getServerSupabase()
+    const supabase = getAdminSupabase()
 
-    // Verify auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: 'يجب تسجيل الدخول أولاً' }
-    }
 
     // Validate inputs
     if (!amount || amount < 1000) {
@@ -120,7 +98,7 @@ export async function submitManualDepositAction(
 
     // Call secure RPC
     const { data, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id:     user.id,
+      p_user_id:     userId,
       p_amount:      amount,
       p_method:      method,
       p_receipt_url: receiptUrl,
@@ -151,15 +129,12 @@ export async function submitManualDepositAction(
 // Action 3: Initiate Chargily (Edahabia) checkout
 // ─────────────────────────────────────────────────────────────
 export async function initiateChargilyDepositAction(
+  userId: string,
   amount: number
 ): Promise<DepositResult & { checkoutUrl?: string }> {
   try {
-    const supabase = await getServerSupabase()
+    const supabase = getAdminSupabase()
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: 'يجب تسجيل الدخول أولاً' }
-    }
 
     if (!amount || amount < 1000) {
       return { success: false, error: 'المبلغ الأدنى للإيداع هو 1,000 دج' }
@@ -172,7 +147,7 @@ export async function initiateChargilyDepositAction(
 
     // Create pending transaction first
     const { data: txnId, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id:     user.id,
+      p_user_id:     userId,
       p_amount:      amount,
       p_method:      'edahabia',
       p_receipt_url: null,
@@ -197,7 +172,7 @@ export async function initiateChargilyDepositAction(
         failure_url: `${process.env.NEXT_PUBLIC_APP_URL}/wallet/deposit?error=payment_failed`,
         webhook_endpoint: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/chargily`,
         metadata: {
-          user_id:        user.id,
+          user_id:        userId,
           transaction_id: txnId,
         },
         description: `إيداع رصيد — خدمة.dz`,
