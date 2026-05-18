@@ -152,7 +152,7 @@ export async function initiateChargilyDepositAction(userId: string, amount: numb
     const chargilyRes = await fetch('https://pay.chargily.net/api/v2/checkouts', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${chargilyApiKey}`,
+        'Authorization': `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
