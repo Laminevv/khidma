@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { confirmPayoutAction } from '@/app/actions/admin'
+import { confirmPayoutAction, confirmDepositAction } from '@/app/actions/admin'
 
 export interface Withdrawal {
   id: string
@@ -12,16 +12,28 @@ export interface Withdrawal {
   profiles: { username: string; full_name: string } | null
 }
 
+export interface Deposit {
+  id: string
+  amount: number
+  created_at: string
+  metadata: any
+  payment_method: string
+  receipt_url: string | null
+  profiles: { username: string; full_name: string } | null
+}
+
 interface ClientPaymentsPageProps {
   totalRevenue: number
   initialWithdrawals: Withdrawal[]
+  initialDeposits: Deposit[]
 }
 
-export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }: ClientPaymentsPageProps) {
+export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, initialDeposits }: ClientPaymentsPageProps) {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>(initialWithdrawals)
+  const [deposits, setDeposits] = useState<Deposit[]>(initialDeposits)
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
-  const handleConfirm = async (id: string) => {
+  const handleConfirmPayout = async (id: string) => {
     if (!confirm('هل تم تحويل الأموال بالفعل إلى المستقل؟ (هذا الإجراء لا يمكن التراجع عنه)')) return
     
     setLoadingId(id)
@@ -32,6 +44,21 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
       setWithdrawals((prev) => prev.filter((w) => w.id !== id))
     } else {
       alert(res.error || 'حدث خطأ أثناء تأكيد التحويل')
+    }
+    setLoadingId(null)
+  }
+
+  const handleConfirmDeposit = async (id: string) => {
+    if (!confirm('هل تأكدت من صحة الإيصال ووصول المبلغ؟ (هذا الإجراء لا يمكن التراجع عنه)')) return
+    
+    setLoadingId(id)
+    const res = await confirmDepositAction(id)
+    
+    if (res.success) {
+      alert('✅ تم تأكيد الإيداع بنجاح')
+      setDeposits((prev) => prev.filter((d) => d.id !== id))
+    } else {
+      alert(res.error || 'حدث خطأ أثناء تأكيد الإيداع')
     }
     setLoadingId(null)
   }
@@ -58,13 +85,13 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
         
         {/* Header & Revenue Tracker */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">الإدارة المالية</h1>
-            <p className="text-gray-400 text-sm">إدارة السحوبات وعوائد المنصة</p>
+            <p className="text-gray-400 text-sm">إدارة الإيداعات، السحوبات وعوائد المنصة</p>
           </div>
           
           <div className="bg-gray-900 border-r-4 border-emerald-500 p-4 sm:p-5 rounded-2xl sm:min-w-[250px]">
@@ -72,6 +99,75 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
             <div className="text-xl sm:text-2xl font-bold text-emerald-500">
               {totalRevenue.toLocaleString()} دج
             </div>
+          </div>
+        </div>
+
+        {/* Deposits Table */}
+        <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-800">
+            <h2 className="font-semibold text-white">طلبات الإيداع المعلقة</h2>
+          </div>
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead>
+              <tr className="border-b border-gray-800 bg-gray-900/50">
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">المستخدم</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">المبلغ</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">طريقة الدفع</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">الإيصال</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deposits.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    لا توجد طلبات إيداع معلقة
+                  </td>
+                </tr>
+              ) : (
+                deposits.map((d) => (
+                  <tr key={d.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="text-white text-sm font-medium">{d.profiles?.full_name || '—'}</div>
+                      <div className="text-gray-400 text-xs">@{d.profiles?.username}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-bold text-white">{d.amount.toLocaleString()} دج</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs uppercase tracking-wider">
+                        {d.payment_method || 'غير معروف'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {d.receipt_url ? (
+                        <a 
+                          href={d.receipt_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-emerald-400 hover:text-emerald-300 text-sm font-medium underline underline-offset-2"
+                        >
+                          عرض الإيصال
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 text-sm">لا يوجد إيصال</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleConfirmDeposit(d.id)}
+                        disabled={loadingId === d.id}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {loadingId === d.id ? 'جاري التأكيد...' : 'تأكيد الإيداع ✅'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
           </div>
         </div>
 
@@ -118,7 +214,7 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals }:
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleConfirm(w.id)}
+                        onClick={() => handleConfirmPayout(w.id)}
                         disabled={loadingId === w.id}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >

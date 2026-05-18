@@ -85,3 +85,72 @@ export async function confirmPayoutAction(transactionId: string) {
     return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
 }
+
+export async function confirmDepositAction(transactionId: string) {
+  try {
+    const supabase = await createClient()
+
+    // 1. Verify Authentication & Admin Status
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (!user || authError) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.is_admin) {
+      return { success: false, error: 'Forbidden' }
+    }
+
+    // 2. Fetch the transaction
+    const { data: txn, error: txnError } = await supabase
+      .from('transactions')
+      .select('id, from_user_id, amount, status')
+      .eq('id', transactionId)
+      .single()
+
+    if (txnError || !txn) {
+      return { success: false, error: 'Transaction not found' }
+    }
+
+    if (txn.status !== 'pending') {
+      return { success: false, error: 'Transaction is not pending' }
+    }
+
+    // 3. Update the transaction
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({ 
+        status: 'completed',
+        note: 'تم تأكيد الإيداع'
+      })
+      .eq('id', transactionId)
+
+    if (updateError) {
+      return { success: false, error: 'Failed to confirm deposit.' }
+    }
+
+    // Notify user
+    if (txn.from_user_id) {
+      await sendNotificationAction(
+        txn.from_user_id,
+        'deposit_completed',
+        'تم تأكيد إيداعك بنجاح! 💰',
+        `تم إضافة مبلغ ${txn.amount?.toLocaleString()} دج إلى محفظتك.`,
+        '/wallet'
+      )
+    }
+
+    revalidatePath('/admin/payments')
+    revalidatePath('/wallet')
+    return { success: true }
+  } catch (error) {
+    console.error('confirmDepositAction unexpected error:', error)
+    return { success: false, error: 'An unexpected server error occurred.' }
+  }
+}
+
