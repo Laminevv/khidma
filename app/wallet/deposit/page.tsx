@@ -51,6 +51,8 @@ export default function DepositPage() {
   const [userId, setUserId] = useState<string>('')
   const [method, setMethod] = useState<Method>('ccp')
   const [amount, setAmount] = useState('')
+  const [senderName, setSenderName] = useState('')
+  const [senderAccount, setSenderAccount] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -104,7 +106,19 @@ export default function DepositPage() {
         return
       }
 
-      // Manual: upload receipt first
+      // Manual: validate sender details
+      if (!senderName.trim() || senderName.trim().length < 3) {
+        setError('يجب إدخال الاسم الكامل للمرسل')
+        setLoading(false)
+        return
+      }
+      if (!senderAccount.trim() || senderAccount.trim().length < 5) {
+        setError('يجب إدخال رقم الحساب/CCP الخاص بالمرسل')
+        setLoading(false)
+        return
+      }
+
+      // Upload receipt first
       if (!file) {
         setError('يجب رفع إيصال الدفع')
         setLoading(false)
@@ -125,7 +139,9 @@ export default function DepositPage() {
         userId,
         numAmount,
         method as 'ccp' | 'baridimob',
-        uploadResult.url
+        uploadResult.url,
+        senderName.trim(),
+        senderAccount.trim()
       )
 
       if (!depositResult.success) {
@@ -290,6 +306,42 @@ export default function DepositPage() {
                   <p className="text-xs text-yellow-700 leading-relaxed">
                     بعد إتمام التحويل، ارفع صورة الإيصال أدناه. سيتم تأكيد الإيداع خلال 24 ساعة من مراجعة الفريق.
                   </p>
+                </div>
+              </div>
+
+              {/* Sender details */}
+              <div>
+                <h2 className="font-semibold text-gray-900 mb-3">
+                  معلومات المرسل <span className="text-red-400">*</span>
+                </h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">الاسم الكامل للمرسل</label>
+                    <input
+                      type="text"
+                      value={senderName}
+                      onChange={(e) => setSenderName(e.target.value)}
+                      placeholder="مثال: محمد أمين بن علي"
+                      required
+                      minLength={3}
+                      className={inputClass}
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">رقم الحساب/CCP للمرسل</label>
+                    <input
+                      type="text"
+                      value={senderAccount}
+                      onChange={(e) => setSenderAccount(e.target.value)}
+                      placeholder="مثال: 00799999000000000000"
+                      required
+                      minLength={5}
+                      className={inputClass}
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">أدخل رقم الحساب الذي تم التحويل منه</p>
+                  </div>
                 </div>
               </div>
 

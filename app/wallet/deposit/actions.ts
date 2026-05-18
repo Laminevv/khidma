@@ -75,7 +75,14 @@ export async function uploadReceiptAction(userId: string, formData: FormData): P
 // ─────────────────────────────────────────────────────────────
 // Action 2: Submit deposit request (CCP / BaridiMob)
 // ─────────────────────────────────────────────────────────────
-export async function submitManualDepositAction(userId: string, amount: number, method: string, receiptUrl: string): Promise<DepositResult> {
+export async function submitManualDepositAction(
+  userId: string,
+  amount: number,
+  method: string,
+  receiptUrl: string,
+  senderName: string,
+  senderAccount: string
+): Promise<DepositResult> {
   try {
     const supabase = getAdminSupabase()
 
@@ -86,6 +93,12 @@ export async function submitManualDepositAction(userId: string, amount: number, 
     }
     if (!receiptUrl) {
       return { success: false, error: 'يجب رفع إيصال الدفع' }
+    }
+    if (!senderName || senderName.length < 3) {
+      return { success: false, error: 'يجب إدخال الاسم الكامل للمرسل' }
+    }
+    if (!senderAccount || senderAccount.length < 5) {
+      return { success: false, error: 'يجب إدخال رقم الحساب/CCP الخاص بالمرسل' }
     }
 
     // Call secure RPC
@@ -100,6 +113,22 @@ export async function submitManualDepositAction(userId: string, amount: number, 
       console.error('[submitManualDepositAction] RPC error:', rpcError)
       // Return user-friendly Arabic error from PostgreSQL RAISE EXCEPTION
       return { success: false, error: rpcError.message || 'فشل إنشاء طلب الإيداع' }
+    }
+
+    // Save sender details to metadata on the newly created transaction
+    const { error: metaError } = await supabase
+      .from('transactions')
+      .update({
+        metadata: {
+          sender_name: senderName,
+          sender_account: senderAccount,
+        },
+      })
+      .eq('id', data)
+
+    if (metaError) {
+      console.error('[submitManualDepositAction] Metadata update error:', metaError)
+      // Non-critical: the deposit request was still created
     }
 
     revalidatePath('/wallet')

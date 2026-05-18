@@ -114,6 +114,8 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, i
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">المستخدم</th>
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">المبلغ</th>
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">طريقة الدفع</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">اسم المرسل</th>
+                <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">رقم الحساب/CCP</th>
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">الإيصال</th>
                 <th className="text-right px-6 py-4 text-xs text-gray-400 font-medium">إجراءات</th>
               </tr>
@@ -121,7 +123,7 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, i
             <tbody>
               {deposits.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     لا توجد طلبات إيداع معلقة
                   </td>
                 </tr>
@@ -139,6 +141,16 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, i
                       <span className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs uppercase tracking-wider">
                         {d.payment_method || 'غير معروف'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-white text-sm">
+                        {d.metadata?.sender_name || '—'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <code className="bg-gray-950 px-2 py-1 rounded text-emerald-400 text-sm border border-gray-800">
+                        {d.metadata?.sender_account || '—'}
+                      </code>
                     </td>
                     <td className="px-6 py-4">
                       {d.receipt_url ? (
