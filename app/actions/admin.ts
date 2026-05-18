@@ -110,7 +110,31 @@ export async function confirmDepositAction(transactionId: string) {
       return { success: false, error: 'Transaction is not pending' }
     }
 
-    // 3. Update the transaction
+    // 3. Increment the user's balance
+    if (txn.from_user_id && txn.amount) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('balance')
+        .eq('id', txn.from_user_id)
+        .single()
+
+      if (profileError) {
+        console.error('Failed to fetch profile for deposit:', profileError)
+        return { success: false, error: 'Failed to fetch user profile' }
+      }
+
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ balance: Number(profile.balance) + Number(txn.amount) })
+        .eq('id', txn.from_user_id)
+
+      if (balanceError) {
+        console.error('Failed to update balance for deposit:', balanceError)
+        return { success: false, error: 'Failed to update user balance' }
+      }
+    }
+
+    // 4. Update the transaction
     const { error: updateError } = await supabase
       .from('transactions')
       .update({ 

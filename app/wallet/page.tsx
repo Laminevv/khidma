@@ -154,6 +154,7 @@ export default function WalletPage() {
   if (!profile) return null
 
   const isClient = profile.role === 'client' || profile.role === 'both'
+  const canWithdraw = profile.role === 'freelancer' || profile.role === 'both'
   const balance = profile.balance
 
   // Stats
@@ -256,7 +257,7 @@ export default function WalletPage() {
               <p className="text-emerald-100 text-xs mb-1">الرصيد المتاح</p>
               <p className="text-3xl font-bold mb-4">{balance.toLocaleString()} دج</p>
               <div className="flex gap-2 mt-2">
-                {!isClient && (
+                {canWithdraw && (
                   <button
                     onClick={() => { setShowWithdrawForm(true); setWithdrawError(''); setWithdrawSuccess(false) }}
                     disabled={balance < 10000}
@@ -278,23 +279,29 @@ export default function WalletPage() {
           </div>
 
           {/* Stats cards */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-blue-50 text-blue-600">💰</div>
-            <div className="text-xl font-bold text-gray-900 mb-1">{totalDeposits.toLocaleString()} دج</div>
-            <div className="text-xs text-gray-500">إجمالي الإيداعات</div>
-          </div>
+          {isClient && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-blue-50 text-blue-600">💰</div>
+              <div className="text-xl font-bold text-gray-900 mb-1">{totalDeposits.toLocaleString()} دج</div>
+              <div className="text-xs text-gray-500">إجمالي الإيداعات</div>
+            </div>
+          )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-emerald-50 text-emerald-600">✅</div>
-            <div className="text-xl font-bold text-gray-900 mb-1">{totalEarnings.toLocaleString()} دج</div>
-            <div className="text-xs text-gray-500">إجمالي الأرباح</div>
-          </div>
+          {canWithdraw && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-emerald-50 text-emerald-600">✅</div>
+              <div className="text-xl font-bold text-gray-900 mb-1">{totalEarnings.toLocaleString()} دج</div>
+              <div className="text-xs text-gray-500">إجمالي الأرباح</div>
+            </div>
+          )}
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-yellow-50 text-yellow-600">💸</div>
-            <div className="text-xl font-bold text-gray-900 mb-1">{totalWithdrawals.toLocaleString()} دج</div>
-            <div className="text-xs text-gray-500">إجمالي السحوبات {pendingWithdrawals > 0 && <span className="text-yellow-600">({pendingWithdrawals} معلقة)</span>}</div>
-          </div>
+          {canWithdraw && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-yellow-50 text-yellow-600">💸</div>
+              <div className="text-xl font-bold text-gray-900 mb-1">{totalWithdrawals.toLocaleString()} دج</div>
+              <div className="text-xs text-gray-500">إجمالي السحوبات {pendingWithdrawals > 0 && <span className="text-yellow-600">({pendingWithdrawals} معلقة)</span>}</div>
+            </div>
+          )}
         </div>
 
         {/* Withdrawal Form Modal */}
