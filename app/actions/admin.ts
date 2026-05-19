@@ -16,7 +16,8 @@ function getAdminSupabase() {
 
 // ─────────────────────────────────────────────────────────────
 // Helper: verify the calling user is an authenticated admin
-// Returns the verified user, or throws an error response.
+// Uses cookie-based client for auth, then service-role for
+// the is_admin check (avoids RLS blocking the profile read).
 // ─────────────────────────────────────────────────────────────
 async function requireAdmin(): Promise<
   | { user: { id: string }; error: null }
@@ -29,7 +30,9 @@ async function requireAdmin(): Promise<
     return { user: null, error: 'Unauthorized' }
   }
 
-  const { data: profile, error: profileError } = await supabase
+  // Use service-role client for the is_admin check to bypass RLS
+  const adminClient = getAdminSupabase()
+  const { data: profile, error: profileError } = await adminClient
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)

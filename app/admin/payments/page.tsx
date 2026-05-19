@@ -3,49 +3,59 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import ClientPaymentsPage from './ClientPaymentsPage'
 
-// BUG-04 FIX: Server-side admin authentication guard added.
-// Previously this page used the service-role key with zero access control,
-// meaning any URL visitor could see all pending deposits and withdrawals.
+// CRITICAL: Force dynamic rendering so Vercel never caches
+// the redirect that fires when there's no session at build time.
+export const dynamic = 'force-dynamic'
+
 export default async function AdminPaymentsPage() {
-  // 1. Verify the requester is an authenticated admin
+  // ─── Step 1: Get the authenticated user from the session cookie ───
   const authClient = await createClient()
   const { data: { user }, error: authError } = await authClient.auth.getUser()
 
-  if (authError) {
-    console.error('[AdminPaymentsPage] Auth error:', authError.message)
-  }
+  console.log('[AdminPaymentsPage] Auth result:', {
+    userId: user?.id ?? 'NULL',
+    email: user?.email ?? 'NULL',
+    error: authError?.message ?? 'none',
+  })
+
   if (!user) {
-    console.error('[AdminPaymentsPage] No user session — redirecting to login')
+    console.error('[AdminPaymentsPage] No user session — redirecting to /auth/login')
     redirect('/auth/login')
   }
 
-  const { data: profile, error: profileError } = await authClient
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError) {
-    console.error('[AdminPaymentsPage] Profile fetch error:', profileError.message, '| user.id:', user.id)
-  }
-  if (!profile?.is_admin) {
-    console.error('[AdminPaymentsPage] User is not admin — redirecting to dashboard | is_admin:', profile?.is_admin)
-    redirect('/dashboard')
-  }
-
-  // 2. Use service-role client only AFTER auth is confirmed
+  // ─── Step 2: Check is_admin using the SERVICE-ROLE client ─────────
+  // We use service-role here because RLS SELECT policies on `profiles`
+  // may block the anon-key client from reading `is_admin`. The user's
+  // identity is already verified by getUser() above (which contacts
+  // the Supabase Auth server), so this is safe.
   const supabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // 3. Fetch Total Revenue
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+
+  console.log('[AdminPaymentsPage] Profile result:', {
+    userId: user.id,
+    is_admin: profile?.is_admin ?? 'NULL',
+    error: profileError?.message ?? 'none',
+  })
+
+  if (!profile?.is_admin) {
+    console.error('[AdminPaymentsPage] User is NOT admin — redirecting to /dashboard')
+    redirect('/dashboard')
+  }
+
+  // ─── Step 3: Fetch financial data (service-role, already created above) ───
   const { data: overview } = await supabase
     .from('admin_overview')
     .select('total_fees_collected')
     .single()
 
-  // 4. Fetch Pending Withdrawals
   const { data: withdrawals } = await supabase
     .from('transactions')
     .select(`
@@ -66,7 +76,6 @@ export default async function AdminPaymentsPage() {
     profiles: Array.isArray(w.profiles) ? w.profiles[0] : w.profiles,
   }))
 
-  // 5. Fetch Pending Deposits
   const { data: deposits } = await supabase
     .from('transactions')
     .select(`
