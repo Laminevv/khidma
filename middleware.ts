@@ -37,6 +37,12 @@ export async function middleware(request: NextRequest) {
   // Debug: log auth result for admin routes
   if (pathname.startsWith('/admin')) {
     console.log(`[Middleware] ${pathname} | user: ${user?.id ?? 'NULL'} | error: ${error?.message ?? 'none'}`)
+    
+    // Strict edge-level protection for admin routes
+    if (error || !user) {
+      console.log(`[Middleware] Unauthorized admin access attempt to ${pathname}. Redirecting to /auth/login.`)
+      return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
   }
 
   return supabaseResponse
