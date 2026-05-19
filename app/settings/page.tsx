@@ -15,6 +15,7 @@ interface Profile {
   wilaya: string
   hourly_rate: number
   skills: string[]
+  is_verified: boolean
 }
 
 interface PortfolioItem {
@@ -73,7 +74,8 @@ export default function SettingsPage() {
           bio: profileData.bio || '',
           wilaya: profileData.wilaya?.toString() || '',
           hourly_rate: profileData.hourly_rate || 0,
-          skills: profileData.skills || []
+          skills: profileData.skills || [],
+          is_verified: profileData.is_verified || false
         })
       }
 
@@ -233,9 +235,18 @@ export default function SettingsPage() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">إعدادات الحساب</h1>
-          <p className="text-gray-500 text-sm mt-1">تحديث ملفك الشخصي ومعرض أعمالك لجذب المزيد من العملاء</p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">إعدادات الحساب</h1>
+            <p className="text-gray-500 text-sm mt-1">تحديث ملفك الشخصي ومعرض أعمالك لجذب المزيد من العملاء</p>
+          </div>
+          <Link href="/kyc/status" className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${profile.is_verified ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'}`}>
+            {profile.is_verified ? (
+              <><span>✅</span> حساب موثق</>
+            ) : (
+              <><span>⚠️</span> غير موثق (KYC)</>
+            )}
+          </Link>
         </div>
 
         {/* Tabs */}

@@ -24,7 +24,7 @@ export default async function ProfilePage({ params }: PageProps) {
     // 1. Fetch the profile by username
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, username, full_name, avatar_url, bio, role, wilaya, skills, hourly_rate, rating, total_reviews, created_at')
+      .select('id, username, full_name, avatar_url, bio, role, wilaya, skills, hourly_rate, rating, total_reviews, created_at, is_verified')
       .eq('username', username)
       .single()
 

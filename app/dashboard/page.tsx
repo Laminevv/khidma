@@ -287,6 +287,8 @@ export default function DashboardPage() {
                   { label: 'تصفح المشاريع', href: '/jobs', icon: '🔍' },
                   { label: 'الرسائل', href: '/messages', icon: '💬' },
                   { label: 'المحفظة', href: '/wallet', icon: '💳' },
+                  { label: 'التحقق من الهوية', href: '/kyc/status', icon: '🆔' },
+                  { label: 'الإعدادات', href: '/settings', icon: '⚙️' },
                 ].map((item) => (
                   <Link key={item.href} href={item.href}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-all group">

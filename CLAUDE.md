@@ -659,31 +659,95 @@ When KYC is implemented, the settings page (`app/settings/page.tsx`) should add:
 
 ---
 
+## 🆔 KYC (National ID Verification) — Implementation Progress
+
+### Step 1: Database Foundation ✅
+- **Migration file**: `supabase/kyc_migration.sql` — run in Supabase SQL Editor
+- Added `kyc_status`, `is_verified`, `phone_number`, `date_of_birth`, `id_number_hash` columns to `profiles`
+- Created `kyc_submissions` table with full audit trail (`reviewed_by`, `reviewed_at`, `rejection_reason`)
+- Unique partial index prevents multiple active submissions per user
+- Private `kyc-documents` storage bucket (10MB limit, images/PDF only)
+- Storage RLS: users upload only to `{userId}/` folder
+- Three SECURITY DEFINER RPCs: `submit_kyc`, `approve_kyc`, `reject_kyc` — all atomic
+
+### Step 2: Server Actions ✅
+- **File**: `app/actions/kyc.ts` — 7 server actions covering the full lifecycle:
+  1. `uploadKycDocumentAction` — Upload to private bucket (front/back/selfie)
+  2. `submitKycAction` — Submit application (hashes ID number, calls submit_kyc RPC, notifies admins)
+  3. `getKycStatusAction` — Fetch user's current KYC status + latest submission
+  4. `getKycSubmissionsAction` — Admin: fetch pending/all submissions with profile joins
+  5. `getKycDocumentUrlAction` — Admin: generate 60-second signed URLs for private documents
+  6. `approveKycAction` — Admin: approve + notify user
+  7. `rejectKycAction` — Admin: reject with reason + notify user
+- All actions follow established patterns: `requireAdmin()`, `getAuthenticatedUser()`, `getAdminSupabase()`
+- SHA-256 hashing of national ID numbers (never stored raw)
+- Full Arabic error messages for all validation failures
+
+### Step 3: User-Facing KYC Pages ✅
+- `app/kyc/page.tsx` — Submission form:
+  - 3-step wizard: document type selector → ID number → triple file upload (front/back/selfie)
+  - Calls `uploadKycDocumentAction` + `submitKycAction` server actions
+  - Guards against pending/approved status (redirects to status page)
+  - Rejected users see a banner with link to check rejection reason
+  - File upload zones with loading spinners, success indicators, and clear buttons
+  - SHA-256 privacy notice for the ID number field
+  - RTL layout, Tajawal font, emerald/white theme
+- `app/kyc/status/page.tsx` — Status tracker:
+  - Visual 3-step progress bar (التقديم → المراجعة → القرار) with animated pending state
+  - Submission details card (document type, dates, status badge)
+  - Rejection reason card (red, with clear explanation)
+  - Benefits card when approved (unlimited withdrawals, verified badge, search priority)
+  - Action buttons: resubmit (if rejected/none), back to dashboard, settings link
+- Dashboard quick links updated: added KYC + Settings links
+
+### Step 4: Admin KYC Review Page ✅
+- `app/admin/kyc/page.tsx` — Review queue and management:
+  - Filterable queue (pending, approved, rejected, all)
+  - Review modal for individual submissions
+  - Secure document viewer using ephemeral signed URLs (60-second expiry)
+  - Approve workflow (calls `approveKycAction` to update status and notify)
+  - Reject workflow with required reason input (calls `rejectKycAction` to update status and notify)
+  - Responsive design matching the `admin/withdrawals` light theme pattern
+- `app/admin/AdminContent.tsx` — Updated quick actions grid to include a link to the new KYC Review page
+
+### Step 5: Integration ✅
+- Withdrawal gating: `is_verified === true` required in `app/actions/wallet.ts` for withdrawals ≥ 50,000 DZD.
+- Verified badge added to public profiles (`app/profile/[username]/ClientProfilePage.tsx`).
+- KYC status badge added to user settings page (`app/settings/page.tsx`).
+
+---
+
 ### 🗺️ CURRENT ARCHITECTURE MAP (Updated)
 
 ```
 app/
 ├── actions/
-│   ├── admin.ts         ⚠️  confirmDepositAction missing auth check (BUG-01)
+│   ├── admin.ts         ✅  BUG-01/02/05/08 FIXED — admin auth + atomic RPCs
 │   ├── wallet.ts        ✅  requestWithdrawalAction — clean
-│   └── notifications.ts ⚠️  sendNotification breaks when called without user session (BUG-08)
+│   ├── notifications.ts ⚠️  sendNotification breaks when called without user session (BUG-08)
+│   └── kyc.ts           ✅  NEW — 7 server actions for full KYC lifecycle
 ├── admin/
-│   ├── AdminContent.tsx ⚠️  client-side mutations need to move to Server Actions (BUG-05)
+│   ├── AdminContent.tsx ✅  BUG-05 FIXED — mutations moved to Server Actions
 │   ├── page.tsx         ✅  delegates to AdminContent
 │   ├── payments/
-│   │   ├── page.tsx     🔴  NO admin auth guard (BUG-04)
+│   │   ├── page.tsx     ✅  BUG-04 FIXED — server-side admin guard added
 │   │   └── ClientPaymentsPage.tsx ✅  UI correct, calls correct actions
 │   └── withdrawals/
 │       └── page.tsx     ✅  has admin check in useEffect (still should be middleware)
 ├── api/
 │   └── webhooks/chargily/route.ts ✅  excellent — timing-safe HMAC, idempotent
 ├── auth/
-│   └── callback/route.ts ⚠️  open redirect on `next` param (BUG-09)
+│   └── callback/route.ts ✅  BUG-09 FIXED — next param validated
 ├── wallet/
 │   ├── page.tsx         🟡  client component, revalidatePath won't work fully (BUG-06)
 │   └── deposit/
-│       ├── page.tsx     ⚠️  passes userId from client to server action (BUG-03)
-│       ├── actions.ts   ⚠️  accepts userId param, non-atomic metadata (BUG-03, BUG-10)
+│       ├── page.tsx     ✅  BUG-03 FIXED — userId derived server-side
+│       ├── actions.ts   ✅  BUG-03/10 FIXED — atomic metadata via RPC
 │       └── deposit.sql  ✅  request_deposit RPC is correct
+├── kyc/                  ⏳  NEXT — user submission form + status page
 └── settings/page.tsx    ✅  client mutations acceptable here (own profile only, RLS protects)
+
+supabase/
+├── schema.sql           ✅  original schema
+└── kyc_migration.sql    ✅  KYC tables, columns, RPCs, storage bucket
 ```

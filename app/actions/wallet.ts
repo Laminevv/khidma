@@ -22,6 +22,19 @@ export async function requestWithdrawalAction(amount: number, payoutDetails: str
       return { success: false, error: 'Invalid payout details' }
     }
 
+    // Gating: Require KYC verification for withdrawals >= 50,000 DZD
+    if (amount >= 50000) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_verified')
+        .eq('id', user.id)
+        .single()
+      
+      if (!profile?.is_verified) {
+        return { success: false, error: 'يجب توثيق هويتك (KYC) لسحب مبالغ تتجاوز 50,000 دج.' }
+      }
+    }
+
     // 3. Call the secure RPC to prevent double spending
     const { error: rpcError } = await supabase.rpc('request_withdrawal', {
       p_amount: amount,

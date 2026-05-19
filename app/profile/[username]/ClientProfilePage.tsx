@@ -32,6 +32,7 @@ interface Profile {
   rating: number
   total_reviews: number
   created_at: string
+  is_verified: boolean
 }
 
 interface CompletedContract {
@@ -140,7 +141,16 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
             {/* Info */}
             <div className="flex-1 text-center sm:text-right">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 mb-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{profile.full_name || profile.username}</h1>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{profile.full_name || profile.username}</h1>
+                  {profile.is_verified && (
+                    <div className="text-white bg-emerald-500 p-0.5 rounded-full shadow-sm" title="حساب موثق رسمياً">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  )}
+                </div>
                 {isFreelancer && (
                   <span className="bg-emerald-50 text-emerald-600 text-xs font-medium px-3 py-1 rounded-full border border-emerald-100">
                     🧑‍💻 مستقل
