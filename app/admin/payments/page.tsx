@@ -9,16 +9,29 @@ import ClientPaymentsPage from './ClientPaymentsPage'
 export default async function AdminPaymentsPage() {
   // 1. Verify the requester is an authenticated admin
   const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) redirect('/auth/login')
+  const { data: { user }, error: authError } = await authClient.auth.getUser()
 
-  const { data: profile } = await authClient
+  if (authError) {
+    console.error('[AdminPaymentsPage] Auth error:', authError.message)
+  }
+  if (!user) {
+    console.error('[AdminPaymentsPage] No user session — redirecting to login')
+    redirect('/auth/login')
+  }
+
+  const { data: profile, error: profileError } = await authClient
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_admin) redirect('/dashboard')
+  if (profileError) {
+    console.error('[AdminPaymentsPage] Profile fetch error:', profileError.message, '| user.id:', user.id)
+  }
+  if (!profile?.is_admin) {
+    console.error('[AdminPaymentsPage] User is not admin — redirecting to dashboard | is_admin:', profile?.is_admin)
+    redirect('/dashboard')
+  }
 
   // 2. Use service-role client only AFTER auth is confirmed
   const supabase = createAdminClient(
