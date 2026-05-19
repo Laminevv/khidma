@@ -41,10 +41,10 @@ export async function resolveDisputeAction(disputeId: string, contractId: string
 
     if (lockedAmount > 0) {
       if (action === 'refund_client') {
-        // Refund Client: increase client balance
-        const { data: clientData } = await supabase.from('profiles').select('balance').eq('id', contract.client_id).single()
+        // Refund Client: increase client deposit balance
+        const { data: clientData } = await supabase.from('profiles').select('deposit_balance').eq('id', contract.client_id).single()
         if (clientData) {
-          await supabase.from('profiles').update({ balance: clientData.balance + lockedAmount }).eq('id', contract.client_id)
+          await supabase.from('profiles').update({ deposit_balance: clientData.deposit_balance + lockedAmount }).eq('id', contract.client_id)
         }
         
         // Log transaction
@@ -56,13 +56,13 @@ export async function resolveDisputeAction(disputeId: string, contractId: string
           status: 'completed'
         })
       } else if (action === 'release_freelancer') {
-        // Release to Freelancer: increase freelancer balance (minus fee)
+        // Release to Freelancer: increase freelancer withdrawable balance (minus fee)
         const fee = Math.round(lockedAmount * 0.10)
         const net = lockedAmount - fee
         
-        const { data: freelancerData } = await supabase.from('profiles').select('balance').eq('id', contract.freelancer_id).single()
+        const { data: freelancerData } = await supabase.from('profiles').select('withdrawable_balance').eq('id', contract.freelancer_id).single()
         if (freelancerData) {
-          await supabase.from('profiles').update({ balance: freelancerData.balance + net }).eq('id', contract.freelancer_id)
+          await supabase.from('profiles').update({ withdrawable_balance: freelancerData.withdrawable_balance + net }).eq('id', contract.freelancer_id)
         }
         
         // Log transaction

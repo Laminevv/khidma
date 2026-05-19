@@ -12,7 +12,8 @@ interface Profile {
   username: string
   full_name: string
   role: string
-  balance: number
+  deposit_balance: number
+  withdrawable_balance: number
   is_admin: boolean
 }
 
@@ -84,7 +85,7 @@ export default function WalletPage() {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, username, full_name, role, balance, is_admin')
+        .select('id, username, full_name, role, deposit_balance, withdrawable_balance, is_admin')
         .eq('id', user.id)
         .single()
 
@@ -116,8 +117,8 @@ export default function WalletPage() {
       setWithdrawError('الحد الأدنى للسحب هو 10,000 دج')
       return
     }
-    if (amount > profile.balance) {
-      setWithdrawError('المبلغ المطلوب يتجاوز رصيدك المتاح')
+    if (amount > profile.withdrawable_balance) {
+      setWithdrawError('المبلغ المطلوب يتجاوز رصيد الأرباح المتاح للسحب')
       return
     }
     if (!payoutDetails.trim() || payoutDetails.trim().length < 5) {
@@ -130,7 +131,7 @@ export default function WalletPage() {
 
     if (res.success) {
       setWithdrawSuccess(true)
-      setProfile({ ...profile, balance: profile.balance - amount })
+      setProfile({ ...profile, withdrawable_balance: profile.withdrawable_balance - amount })
       setWithdrawAmount('')
       setPayoutDetails('')
       setTimeout(() => {
@@ -155,7 +156,8 @@ export default function WalletPage() {
 
   const isClient = profile.role === 'client' || profile.role === 'both'
   const canWithdraw = profile.role === 'freelancer' || profile.role === 'both'
-  const balance = profile.balance
+  const deposit_balance = profile.deposit_balance
+  const withdrawable_balance = profile.withdrawable_balance
 
   // Stats
   const totalDeposits = transactions
@@ -245,27 +247,17 @@ export default function WalletPage() {
           </Link>
         </div>
 
-        {/* Balance Card + Stats */}
+        {/* Balance Cards + Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
-          {/* Main Balance */}
-          <div className="sm:col-span-2 lg:col-span-1 bg-emerald-500 rounded-2xl p-6 text-white relative overflow-hidden">
+          {/* Main Deposit Balance */}
+          <div className="sm:col-span-1 bg-emerald-500 rounded-2xl p-6 text-white relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full opacity-10">
               <div className="absolute -top-8 -left-8 w-32 h-32 bg-white rounded-full"></div>
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white rounded-full"></div>
             </div>
             <div className="relative">
-              <p className="text-emerald-100 text-xs mb-1">الرصيد المتاح</p>
-              <p className="text-3xl font-bold mb-4">{balance.toLocaleString()} دج</p>
+              <p className="text-emerald-100 text-xs mb-1">رصيد الشحن (للتوظيف)</p>
+              <p className="text-2xl lg:text-3xl font-bold mb-4">{deposit_balance.toLocaleString()} دج</p>
               <div className="flex gap-2 mt-2">
-                {canWithdraw && (
-                  <button
-                    onClick={() => { setShowWithdrawForm(true); setWithdrawError(''); setWithdrawSuccess(false) }}
-                    disabled={balance < 10000}
-                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    💸 سحب الأموال
-                  </button>
-                )}
                 {isClient && (
                   <Link
                     href="/wallet/deposit"
@@ -273,6 +265,28 @@ export default function WalletPage() {
                   >
                     ➕ شحن الرصيد
                   </Link>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Withdrawable Balance */}
+          <div className="sm:col-span-1 bg-gray-900 rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10">
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white rounded-full"></div>
+            </div>
+            <div className="relative">
+              <p className="text-gray-400 text-xs mb-1">رصيد الأرباح (للسحب)</p>
+              <p className="text-2xl lg:text-3xl font-bold mb-4 text-emerald-400">{withdrawable_balance.toLocaleString()} دج</p>
+              <div className="flex gap-2 mt-2">
+                {canWithdraw && (
+                  <button
+                    onClick={() => { setShowWithdrawForm(true); setWithdrawError(''); setWithdrawSuccess(false) }}
+                    disabled={withdrawable_balance < 10000}
+                    className="bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400"
+                  >
+                    💸 سحب الأموال
+                  </button>
                 )}
               </div>
             </div>
@@ -322,8 +336,8 @@ export default function WalletPage() {
               ) : (
                 <form onSubmit={handleWithdraw} className="space-y-4">
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                    <p className="text-xs text-emerald-600 mb-0.5">رصيدك المتاح</p>
-                    <p className="text-lg font-bold text-emerald-700">{balance.toLocaleString()} دج</p>
+                    <p className="text-xs text-emerald-600 mb-0.5">رصيد الأرباح المتاح للسحب</p>
+                    <p className="text-lg font-bold text-emerald-700">{withdrawable_balance.toLocaleString()} دج</p>
                   </div>
 
                   <div>
@@ -334,7 +348,7 @@ export default function WalletPage() {
                       onChange={e => setWithdrawAmount(e.target.value)}
                       placeholder="مثال: 50000"
                       min={10000}
-                      max={balance}
+                      max={withdrawable_balance}
                       required
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                       style={{ color: '#111827', backgroundColor: '#ffffff' }}

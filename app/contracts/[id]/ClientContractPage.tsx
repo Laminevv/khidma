@@ -26,8 +26,8 @@ interface Contract {
   milestones: Milestone[]
   client_id: string
   freelancer_id: string
-  client: { id: string; username: string; full_name: string; balance: number }
-  freelancer: { id: string; username: string; full_name: string; balance: number }
+  client: { id: string; username: string; full_name: string; deposit_balance: number; withdrawable_balance: number }
+  freelancer: { id: string; username: string; full_name: string; deposit_balance: number; withdrawable_balance: number }
   jobs: { id: string; title: string }
   cancellation_requested_by?: string | null
 }

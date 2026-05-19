@@ -21,7 +21,8 @@ interface Profile {
   username: string
   full_name: string
   role: string
-  balance: number
+  deposit_balance: number
+  withdrawable_balance: number
   rating: number
   total_reviews: number
   is_admin: boolean
@@ -54,12 +55,12 @@ export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleWithdraw = async () => {
-    if (!profile || profile.balance < 10000) return
+    if (!profile || profile.withdrawable_balance < 10000) return
     
-    const amountStr = prompt(`لديك ${profile.balance} دج. أدخل المبلغ المراد سحبه:`, profile.balance.toString())
+    const amountStr = prompt(`لديك ${profile.withdrawable_balance} دج. أدخل المبلغ المراد سحبه:`, profile.withdrawable_balance.toString())
     if (!amountStr) return
     const amount = parseInt(amountStr)
-    if (isNaN(amount) || amount < 10000 || amount > profile.balance) return alert('مبلغ غير صالح')
+    if (isNaN(amount) || amount < 10000 || amount > profile.withdrawable_balance) return alert('مبلغ غير صالح')
 
     const payoutDetails = prompt('أدخل تفاصيل الدفع (RIP/CCP):')
     if (!payoutDetails || payoutDetails.trim().length < 5) return alert('تفاصيل الدفع غير صالحة')
@@ -68,7 +69,7 @@ export default function DashboardPage() {
     const res = await requestWithdrawalAction(amount, payoutDetails)
     if (res.success) {
       alert('✅ تم تقديم طلب السحب بنجاح')
-      setProfile({ ...profile, balance: profile.balance - amount })
+      setProfile({ ...profile, withdrawable_balance: profile.withdrawable_balance - amount })
     } else {
       alert(res.error || 'حدث خطأ')
     }
@@ -213,7 +214,7 @@ export default function DashboardPage() {
           {[
             { label: isClient ? 'مشاريعي' : 'عروضي', value: jobs.length.toString(), icon: '📋', color: 'bg-blue-50 text-blue-600' },
             { label: 'العقود النشطة', value: '0', icon: '📝', color: 'bg-emerald-50 text-emerald-600' },
-            { label: 'الرصيد', value: `${(profile?.balance || 0).toLocaleString()} دج`, icon: '💰', color: 'bg-yellow-50 text-yellow-600' },
+            { label: 'الرصيد الكلي', value: `${((profile?.deposit_balance || 0) + (profile?.withdrawable_balance || 0)).toLocaleString()} دج`, icon: '💰', color: 'bg-yellow-50 text-yellow-600' },
             { label: 'التقييم', value: profile?.rating ? `${profile.rating} ⭐` : '—', icon: '⭐', color: 'bg-purple-50 text-purple-600' },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -300,8 +301,8 @@ export default function DashboardPage() {
             </div>
 
             <div className="bg-emerald-500 rounded-2xl p-6 text-white">
-              <p className="text-emerald-100 text-xs mb-1">الرصيد المتاح</p>
-              <p className="text-2xl font-bold mb-4">{(profile?.balance || 0).toLocaleString()} دج</p>
+              <p className="text-emerald-100 text-xs mb-1">الرصيد الكلي</p>
+              <p className="text-2xl font-bold mb-4">{((profile?.deposit_balance || 0) + (profile?.withdrawable_balance || 0)).toLocaleString()} دج</p>
               
               <div className="flex flex-col gap-2 mt-4">
                 {isClient && (
@@ -316,8 +317,8 @@ export default function DashboardPage() {
                 {!isClient && (
                   <button 
                     onClick={handleWithdraw} 
-                    disabled={withdrawLoading || (profile?.balance || 0) < 10000} 
-                    title={(profile?.balance || 0) < 10000 ? 'يجب أن يكون رصيدك 10,000 دج على الأقل لسحب الأموال' : ''}
+                    disabled={withdrawLoading || (profile?.withdrawable_balance || 0) < 10000} 
+                    title={(profile?.withdrawable_balance || 0) < 10000 ? 'يجب أن يكون رصيد الأرباح 10,000 دج على الأقل لسحب الأموال' : ''}
                     className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed">
                     {withdrawLoading ? 'جاري الطلب...' : '💸 سحب الأموال'}
                   </button>

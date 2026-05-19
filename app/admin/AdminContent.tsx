@@ -22,7 +22,8 @@ interface User {
   is_verified: boolean
   is_banned: boolean
   is_admin: boolean
-  balance: number
+  deposit_balance: number
+  withdrawable_balance: number
   rating: number
   created_at: string
 }
@@ -324,7 +325,7 @@ export default function AdminPage() {
                           {user.role === 'client' ? 'صاحب عمل' : user.role === 'freelancer' ? 'مستقل' : 'الاثنان'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-white">{(user.balance || 0).toLocaleString()} دج</td>
+                      <td className="px-6 py-4 text-sm text-white">{((user.deposit_balance || 0) + (user.withdrawable_balance || 0)).toLocaleString()} دج</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {user.is_banned && <span className="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded-lg">محظور</span>}

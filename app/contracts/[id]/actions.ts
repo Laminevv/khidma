@@ -418,17 +418,13 @@ export async function acceptCancellationAction(contractId: string) {
     }, 0)
 
     if (lockedAmount > 0) {
-      const { data: clientData } = await supabase.from('profiles').select('balance').eq('id', contract.client_id).single()
-      if (clientData) {
-        await supabase.from('profiles').update({ balance: clientData.balance + lockedAmount }).eq('id', contract.client_id)
-        
-        await supabase.from('transactions').insert({
-          from_user_id: contract.client_id,
-          to_user_id: contract.client_id,
-          amount: lockedAmount,
-          type: 'refund',
-          status: 'completed'
-        })
+      const { error: refundError } = await supabase.rpc('refund_escrow_cancellation', {
+        p_contract_id: contractId,
+        p_amount: lockedAmount
+      })
+      if (refundError) {
+        console.error('Refund escrow RPC error:', refundError.message)
+        return { success: false, error: 'Failed to process refund. Please try again.' }
       }
     }
 
