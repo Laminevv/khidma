@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { requestWithdrawalAction } from '@/app/actions/wallet'
@@ -62,11 +63,13 @@ const statusStyles: Record<string, string> = {
   reversed: 'bg-gray-100 text-gray-600 border-gray-200',
 }
 
-export default function WalletPage() {
+function WalletContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDepositSuccess, setShowDepositSuccess] = useState(false)
 
   // Withdrawal form state
   const [showWithdrawForm, setShowWithdrawForm] = useState(false)
@@ -78,6 +81,12 @@ export default function WalletPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
+    if (searchParams?.get('deposit') === 'success') {
+      setShowDepositSuccess(true)
+      window.history.replaceState({}, '', '/wallet')
+      setTimeout(() => setShowDepositSuccess(false), 5000)
+    }
+
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth/login'); return }
@@ -104,7 +113,7 @@ export default function WalletPage() {
       setLoading(false)
     }
     init()
-  }, [])
+  }, [searchParams, router])
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -236,6 +245,20 @@ export default function WalletPage() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Deposit Success Banner */}
+        {showDepositSuccess && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">✅</span>
+              <div>
+                <p className="font-bold text-sm">تم الإيداع بنجاح!</p>
+                <p className="text-xs text-emerald-600 mt-0.5">ستتم مراجعة الدفعة وإضافتها إلى رصيد الشحن الخاص بك قريباً.</p>
+              </div>
+            </div>
+            <button onClick={() => setShowDepositSuccess(false)} className="text-emerald-500 hover:text-emerald-700">✕</button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -459,5 +482,17 @@ export default function WalletPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function WalletPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <WalletContent />
+    </Suspense>
   )
 }

@@ -493,9 +493,9 @@ const next = rawNext.startsWith('/') ? rawNext : '/dashboard'
 | 🟠 HIGH | BUG-02 | Fix race condition in balance update (use atomic SQL) | `app/actions/admin.ts` |
 | 🟠 HIGH | BUG-03 | Derive userId server-side in deposit actions | `app/wallet/deposit/actions.ts` |
 | 🟠 HIGH | BUG-05 | Move admin mutations to Server Actions | `app/admin/AdminContent.tsx` + `app/actions/admin.ts` |
-| 🟡 MEDIUM | BUG-08 | Fix notification delivery in confirmDepositAction | `app/actions/admin.ts` |
+| 🟡 FIXED | BUG-08 | Fix notification delivery in confirmDepositAction | `app/actions/admin.ts` |
 | 🟡 MEDIUM | BUG-10 | Make sender metadata atomic with deposit creation | `app/wallet/deposit/actions.ts` + `deposit.sql` |
-| 🟡 MEDIUM | NAV-03 | Add middleware for `/admin/*` route protection | `middleware.ts` (create new) |
+| 🟡 FIXED | NAV-03 | Add middleware for `/admin/*` route protection | `middleware.ts` |
 | 🟢 LOW | BUG-09 | Validate `next` param in auth callback | `app/auth/callback/route.ts` |
 | 🟢 LOW | BUG-06 | Convert wallet page to Server Component | `app/wallet/page.tsx` |
 | ⬜ REMINDER | BUG-07 | Switch Chargily to production URL before launch | `app/wallet/deposit/actions.ts` |
@@ -751,3 +751,26 @@ supabase/
 ├── schema.sql           ✅  original schema
 └── kyc_migration.sql    ✅  KYC tables, columns, RPCs, storage bucket
 ```
+
+## ⚖️ Dual Balance Architecture Sprint (Completed)
+
+To prevent money laundering (depositing then immediately withdrawing) and cleanly separate funds, the financial engine was refactored from a single `balance` to a dual-balance system (`deposit_balance` and `withdrawable_balance`).
+
+### Step 1: Database Migration ✅
+- **Migration file**: `supabase/dual_balance_migration.sql`
+- Renamed `balance` column to `deposit_balance`.
+- Added `withdrawable_balance` (DEFAULT 0.00).
+- **Waterfall Spending Logic**: Escrow (`lock_milestone_escrow`) now strictly pulls from `deposit_balance` first. If insufficient, it pulls the remainder from `withdrawable_balance`.
+- **Atomic Refunds**: Created `refund_escrow_cancellation` RPC. This enforces that canceled contracts refund the client entirely back into their `deposit_balance` (preventing them from withdrawing manual deposits).
+- Updated all existing financial RPCs (`confirm_manual_deposit`, `process_deposit`, `request_withdrawal`, `release_milestone_escrow`) to target the correct balances.
+
+### Step 2: Application Layer ✅
+- **TypeScript Definitions**: Replaced `balance` with `deposit_balance` and `withdrawable_balance` in `Profile` and `User` interfaces across all files.
+- **Wallet UI (`app/wallet/page.tsx`)**: 
+  - Redesigned to show two separate balance cards: "رصيد الشحن" (Deposit Balance for hiring) and "رصيد الأرباح" (Withdrawable Balance for earnings).
+  - Fixed visibility bug to ensure UI states correctly match the two balances.
+  - Withdrawal form strictly validates against `withdrawable_balance`.
+- **Dashboard UI (`app/dashboard/page.tsx`)**: Computes and displays the combined total balance but routes withdrawals correctly against the earnings limit.
+- **Admin UI (`app/admin/AdminContent.tsx`)**: Updated the user list table to sum and display the total balance correctly.
+- **Contracts (`app/contracts/[id]/actions.ts`)**: Replaced manual cancellation refunds with the atomic `refund_escrow_cancellation` RPC.
+- **Dispute Resolution (`app/admin/disputes/actions.ts`)**: Refactored to refund clients to `deposit_balance` and release payouts to freelancers to `withdrawable_balance`.
