@@ -109,6 +109,23 @@ export async function submitManualDepositAction(
 
     const supabase = getAdminSupabase()
 
+    // Rate Limiting: Check pending deposits
+    const { count, error: countError } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('from_user_id', userId)
+      .eq('type', 'deposit')
+      .eq('status', 'pending')
+
+    if (countError) {
+      console.error('[submitManualDepositAction] Rate limit check error:', countError)
+      return { success: false, error: 'حدث خطأ أثناء التحقق من الطلبات المعلقة.' }
+    }
+
+    if (count !== null && count >= 3) {
+      return { success: false, error: 'لديك بالفعل 3 طلبات إيداع معلقة. يرجى الانتظار حتى يتم معالجتها.' }
+    }
+
     // Server-side validation
     if (!amount || amount < 1000) {
       return { success: false, error: 'المبلغ الأدنى للإيداع هو 1,000 دج' }
@@ -169,6 +186,23 @@ export async function initiateChargilyDepositAction(
     if (!userId) return { success: false, error: 'يجب تسجيل الدخول أولاً' }
 
     const supabase = getAdminSupabase()
+
+    // Rate Limiting: Check pending deposits
+    const { count, error: countError } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('from_user_id', userId)
+      .eq('type', 'deposit')
+      .eq('status', 'pending')
+
+    if (countError) {
+      console.error('[initiateChargilyDepositAction] Rate limit check error:', countError)
+      return { success: false, error: 'حدث خطأ أثناء التحقق من الطلبات المعلقة.' }
+    }
+
+    if (count !== null && count >= 3) {
+      return { success: false, error: 'لديك بالفعل 3 طلبات إيداع معلقة. يرجى الانتظار حتى يتم معالجتها قبل تقديم طلب جديد.' }
+    }
 
     if (!amount || amount < 1000) {
       return { success: false, error: 'المبلغ الأدنى للإيداع هو 1,000 دج' }
