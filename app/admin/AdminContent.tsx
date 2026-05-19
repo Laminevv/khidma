@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { banUserAction, verifyUserAction, deleteJobAction } from '@/app/actions/admin'
 interface Stats {
   total_users: number
   new_users_30d: number
@@ -116,25 +117,38 @@ export default function AdminPage() {
     setJobs(data || [])
   }
 
+  // BUG-05 FIX: admin mutations now go through authenticated Server Actions
   const banUser = async (userId: string, isBanned: boolean) => {
     setActionLoading(userId)
-    await supabase.from('profiles').update({ is_banned: !isBanned }).eq('id', userId)
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: !isBanned } : u))
+    const res = await banUserAction(userId, isBanned)
+    if (res.success) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: !isBanned } : u))
+    } else {
+      alert(res.error || 'حدث خطأ')
+    }
     setActionLoading(null)
   }
 
   const verifyUser = async (userId: string, isVerified: boolean) => {
     setActionLoading(userId)
-    await supabase.from('profiles').update({ is_verified: !isVerified }).eq('id', userId)
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_verified: !isVerified } : u))
+    const res = await verifyUserAction(userId, isVerified)
+    if (res.success) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_verified: !isVerified } : u))
+    } else {
+      alert(res.error || 'حدث خطأ')
+    }
     setActionLoading(null)
   }
 
   const deleteJob = async (jobId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المشروع؟')) return
     setActionLoading(jobId)
-    await supabase.from('jobs').delete().eq('id', jobId)
-    setJobs(prev => prev.filter(j => j.id !== jobId))
+    const res = await deleteJobAction(jobId)
+    if (res.success) {
+      setJobs(prev => prev.filter(j => j.id !== jobId))
+    } else {
+      alert(res.error || 'حدث خطأ')
+    }
     setActionLoading(null)
   }
 

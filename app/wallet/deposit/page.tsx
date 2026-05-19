@@ -1,6 +1,5 @@
 'use client'
-import { supabase } from '@/lib/supabase'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -48,7 +47,6 @@ export default function DepositPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [userId, setUserId] = useState<string>('')
   const [method, setMethod] = useState<Method>('ccp')
   const [amount, setAmount] = useState('')
   const [senderName, setSenderName] = useState('')
@@ -58,14 +56,6 @@ export default function DepositPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUserId(user.id)
-      }
-    })
-  }, [])
 
   const isManual = method === 'ccp' || method === 'baridimob'
 
@@ -80,11 +70,6 @@ export default function DepositPage() {
     setError('')
     setSuccess('')
 
-    if (!userId) {
-      setError('يجب تسجيل الدخول أولاً')
-      return
-    }
-
     const numAmount = Number(amount)
     if (!numAmount || numAmount < 1000) {
       setError('المبلغ الأدنى للإيداع هو 1,000 دج')
@@ -95,7 +80,8 @@ export default function DepositPage() {
 
     try {
       if (method === 'edahabia') {
-        const result = await initiateChargilyDepositAction(userId, numAmount)
+        // BUG-03 FIX: userId is no longer passed; server derives it from session
+        const result = await initiateChargilyDepositAction(numAmount)
         if (!result.success) {
           setError(result.error)
           return
@@ -127,7 +113,8 @@ export default function DepositPage() {
 
       const fd = new FormData()
       fd.append('receipt', file)
-      const uploadResult = await uploadReceiptAction(userId, fd)
+      // BUG-03 FIX: userId no longer passed; server derives it from session
+      const uploadResult = await uploadReceiptAction(fd)
 
       if (!uploadResult.success) {
         setError(uploadResult.error)
@@ -135,8 +122,8 @@ export default function DepositPage() {
         return
       }
 
+      // BUG-03 FIX: userId no longer passed; server derives it from session
       const depositResult = await submitManualDepositAction(
-        userId,
         numAmount,
         method as 'ccp' | 'baridimob',
         uploadResult.url,

@@ -1,15 +1,28 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+
 // ─────────────────────────────────────────────────────────────
-// Helper — Admin Supabase client to bypass RLS since we removed cookies auth
+// Helper — Admin Supabase client to bypass RLS
 // ─────────────────────────────────────────────────────────────
 function getAdminSupabase() {
-  return createClient(
+  return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+// ─────────────────────────────────────────────────────────────
+// BUG-03 FIX: Helper — derive userId from the server-side
+// session, NEVER trusting the userId passed from the client.
+// ─────────────────────────────────────────────────────────────
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const supabase = await createServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (!user || error) return null
+  return user.id
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -25,11 +38,15 @@ export type UploadReceiptResult =
 
 // ─────────────────────────────────────────────────────────────
 // Action 1: Upload receipt file to Supabase Storage
+// BUG-03 FIX: userId parameter removed — derived from server session.
 // ─────────────────────────────────────────────────────────────
-export async function uploadReceiptAction(userId: string, formData: FormData): Promise<UploadReceiptResult> {
+export async function uploadReceiptAction(formData: FormData): Promise<UploadReceiptResult> {
   try {
-    const supabase = getAdminSupabase()
+    // BUG-03 FIX: Get userId server-side; reject if not authenticated
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: 'يجب تسجيل الدخول أولاً' }
 
+    const supabase = getAdminSupabase()
 
     const file = formData.get('receipt') as File | null
     if (!file || file.size === 0) {
@@ -59,7 +76,6 @@ export async function uploadReceiptAction(userId: string, formData: FormData): P
       return { success: false, error: 'فشل رفع الملف: ' + uploadError.message }
     }
 
-    // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('receipts')
       .getPublicUrl(data.path)
@@ -74,9 +90,12 @@ export async function uploadReceiptAction(userId: string, formData: FormData): P
 
 // ─────────────────────────────────────────────────────────────
 // Action 2: Submit deposit request (CCP / BaridiMob)
+// BUG-03 FIX: userId parameter removed — derived from server session.
+// BUG-10 FIX: sender_name + sender_account passed atomically via
+//             p_metadata to request_deposit RPC (single INSERT).
+//             Requires updated RPC — see supabase/fixes/security_fixes.sql
 // ─────────────────────────────────────────────────────────────
 export async function submitManualDepositAction(
-  userId: string,
   amount: number,
   method: string,
   receiptUrl: string,
@@ -84,10 +103,13 @@ export async function submitManualDepositAction(
   senderAccount: string
 ): Promise<DepositResult> {
   try {
+    // BUG-03 FIX: Get userId server-side
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: 'يجب تسجيل الدخول أولاً' }
+
     const supabase = getAdminSupabase()
 
-
-    // Validate inputs
+    // Server-side validation
     if (!amount || amount < 1000) {
       return { success: false, error: 'المبلغ الأدنى للإيداع هو 1,000 دج' }
     }
@@ -101,34 +123,22 @@ export async function submitManualDepositAction(
       return { success: false, error: 'يجب إدخال رقم الحساب/CCP الخاص بالمرسل' }
     }
 
-    // Call secure RPC
+    // BUG-10 FIX: Pass metadata atomically inside the RPC call so sender info
+    // is written in the same INSERT as the transaction — no second round-trip.
     const { data, error: rpcError } = await supabase.rpc('request_deposit', {
       p_user_id: userId,
       p_amount: amount,
       p_method: method,
       p_receipt_url: receiptUrl,
+      p_metadata: {
+        sender_name: senderName,
+        sender_account: senderAccount,
+      },
     })
 
     if (rpcError) {
       console.error('[submitManualDepositAction] RPC error:', rpcError)
-      // Return user-friendly Arabic error from PostgreSQL RAISE EXCEPTION
       return { success: false, error: rpcError.message || 'فشل إنشاء طلب الإيداع' }
-    }
-
-    // Save sender details to metadata on the newly created transaction
-    const { error: metaError } = await supabase
-      .from('transactions')
-      .update({
-        metadata: {
-          sender_name: senderName,
-          sender_account: senderAccount,
-        },
-      })
-      .eq('id', data)
-
-    if (metaError) {
-      console.error('[submitManualDepositAction] Metadata update error:', metaError)
-      // Non-critical: the deposit request was still created
     }
 
     revalidatePath('/wallet')
@@ -148,11 +158,17 @@ export async function submitManualDepositAction(
 
 // ─────────────────────────────────────────────────────────────
 // Action 3: Initiate Chargily (Edahabia) checkout
+// BUG-03 FIX: userId parameter removed — derived from server session.
 // ─────────────────────────────────────────────────────────────
-export async function initiateChargilyDepositAction(userId: string, amount: number): Promise<DepositResult & { checkoutUrl?: string }> {
+export async function initiateChargilyDepositAction(
+  amount: number
+): Promise<DepositResult & { checkoutUrl?: string }> {
   try {
-    const supabase = getAdminSupabase()
+    // BUG-03 FIX: Get userId server-side
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: 'يجب تسجيل الدخول أولاً' }
 
+    const supabase = getAdminSupabase()
 
     if (!amount || amount < 1000) {
       return { success: false, error: 'المبلغ الأدنى للإيداع هو 1,000 دج' }
@@ -170,6 +186,7 @@ export async function initiateChargilyDepositAction(userId: string, amount: numb
       p_amount: amount,
       p_method: 'edahabia',
       p_receipt_url: null,
+      p_metadata: null,
     })
 
     if (rpcError) {
@@ -178,6 +195,7 @@ export async function initiateChargilyDepositAction(userId: string, amount: numb
     }
 
     // Call Chargily API v2
+    // NOTE: Change to https://pay.chargily.net/api/v2/checkouts before going live
     const chargilyRes = await fetch('https://pay.chargily.net/test/api/v2/checkouts', {
       method: 'POST',
       headers: {

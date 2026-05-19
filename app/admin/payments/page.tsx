@@ -1,19 +1,38 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { redirect } from 'next/navigation'
 import ClientPaymentsPage from './ClientPaymentsPage'
 
+// BUG-04 FIX: Server-side admin authentication guard added.
+// Previously this page used the service-role key with zero access control,
+// meaning any URL visitor could see all pending deposits and withdrawals.
 export default async function AdminPaymentsPage() {
-  const supabase = createClient(
+  // 1. Verify the requester is an authenticated admin
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  const { data: profile } = await authClient
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.is_admin) redirect('/dashboard')
+
+  // 2. Use service-role client only AFTER auth is confirmed
+  const supabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // 2. Fetch Total Revenue
+  // 3. Fetch Total Revenue
   const { data: overview } = await supabase
     .from('admin_overview')
     .select('total_fees_collected')
     .single()
 
-  // 3. Fetch Pending Withdrawals
+  // 4. Fetch Pending Withdrawals
   const { data: withdrawals } = await supabase
     .from('transactions')
     .select(`
@@ -26,16 +45,15 @@ export default async function AdminPaymentsPage() {
     .eq('type', 'withdrawal')
     .eq('status', 'pending')
 
-  // Format the data to guarantee a single profile object, resolving TypeScript errors
   const formattedWithdrawals = (withdrawals || []).map((w: any) => ({
     id: w.id,
     amount: w.amount,
     created_at: w.created_at,
     metadata: w.metadata,
-    profiles: Array.isArray(w.profiles) ? w.profiles[0] : w.profiles
+    profiles: Array.isArray(w.profiles) ? w.profiles[0] : w.profiles,
   }))
 
-  // 4. Fetch Pending Deposits
+  // 5. Fetch Pending Deposits
   const { data: deposits } = await supabase
     .from('transactions')
     .select(`
@@ -57,11 +75,11 @@ export default async function AdminPaymentsPage() {
     metadata: d.metadata,
     payment_method: d.payment_method,
     receipt_url: d.receipt_url,
-    profiles: Array.isArray(d.profiles) ? d.profiles[0] : d.profiles
+    profiles: Array.isArray(d.profiles) ? d.profiles[0] : d.profiles,
   }))
 
   return (
-    <ClientPaymentsPage 
+    <ClientPaymentsPage
       totalRevenue={overview?.total_fees_collected || 0}
       initialWithdrawals={formattedWithdrawals}
       initialDeposits={formattedDeposits}

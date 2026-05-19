@@ -348,3 +348,342 @@ $$;
   - Triggers `revalidatePath` for `/admin/payments`, `/admin/withdrawals`, and `/wallet`.
 - **Theme**: Maintained the White & Green theme matching the admin dashboard pattern.
 - **Admin Dashboard Link**: Added a quick action link to the Withdrawals page in `AdminContent.tsx`.
+
+---
+
+## 🔍 Comprehensive Code Review — May 2026
+
+> Performed a full audit of the codebase covering: wallet system, deposit flow, admin approvals, Chargily webhook, routing, security, and architecture.
+
+---
+
+### 🐛 BUGS & ISSUES FOUND
+
+#### BUG-01 — `confirmDepositAction` has NO admin authentication check (CRITICAL)
+- **File**: `app/actions/admin.ts`, lines 91–168
+- **Problem**: `confirmDepositAction` uses the service-role Supabase client but **never verifies that the calling user is an admin**. Any authenticated user who discovers this Server Action endpoint can confirm any deposit, crediting any user's wallet with any amount.
+- **Fix Required**: Add the same `getUser()` + `is_admin` check that `confirmPayoutAction` already has (lines 12–30) at the top of `confirmDepositAction`.
+```typescript
+// ADD THIS at the start of confirmDepositAction:
+const authSupabase = await createClient()
+const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+if (!user || authError) return { success: false, error: 'Unauthorized' }
+const { data: adminProfile } = await authSupabase.from('profiles').select('is_admin').eq('id', user.id).single()
+if (!adminProfile?.is_admin) return { success: false, error: 'Forbidden' }
+```
+
+#### BUG-02 — `confirmDepositAction` has a RACE CONDITION in balance update (HIGH)
+- **File**: `app/actions/admin.ts`, lines 113–134
+- **Problem**: The balance update is done with a manual READ-then-WRITE: fetch current `balance`, add the deposit amount, then update. This is **not atomic**. If two admin requests confirm deposits for the same user simultaneously, one of the increments will be silently lost.
+- **Fix Required**: Use a PostgreSQL atomic update instead of read-then-write:
+```sql
+-- Replace the two-step balance update with a single atomic RPC or SQL:
+UPDATE profiles SET balance = balance + p_amount WHERE id = p_user_id;
+```
+Or add a new database RPC: `confirm_manual_deposit(p_transaction_id UUID)` that handles the entire operation in a single transaction.
+
+#### BUG-03 — `uploadReceiptAction` and `submitManualDepositAction` accept `userId` from the client (MEDIUM)
+- **File**: `app/wallet/deposit/actions.ts`, `app/wallet/deposit/page.tsx`
+- **Problem**: Both server actions accept `userId` as a parameter sourced from the client (`supabase.auth.getUser()` inside `useEffect` in the client component). A malicious user could theoretically pass a **different** user's ID, creating deposits under another user's account.
+- **Fix Required**: Inside the server actions, ignore the passed `userId` parameter and instead derive it from the server-side session:
+```typescript
+// In uploadReceiptAction and submitManualDepositAction:
+const { createClient } = await import('@/lib/supabase/server')
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) return { success: false, error: 'Unauthorized' }
+const userId = user.id // Use this, not the parameter
+```
+
+#### BUG-04 — `admin/payments/page.tsx` has NO admin authentication guard (HIGH)
+- **File**: `app/admin/payments/page.tsx`, lines 1–70
+- **Problem**: This is a Server Component that fetches sensitive financial data using the **service role** key but never checks if the requesting user is an admin. Any authenticated or unauthenticated user can access this page and see all pending deposits and withdrawals.
+- **Fix Required**: Add a server-side auth + admin role check before rendering:
+```typescript
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+// At the top of AdminPaymentsPage():
+const authClient = await createClient()
+const { data: { user } } = await authClient.auth.getUser()
+if (!user) redirect('/auth/login')
+const { data: profile } = await authClient.from('profiles').select('is_admin').eq('id', user.id).single()
+if (!profile?.is_admin) redirect('/dashboard')
+```
+
+#### BUG-05 — `AdminContent.tsx` uses client-side Supabase for admin mutations (MEDIUM)
+- **File**: `app/admin/AdminContent.tsx`, lines 119–138
+- **Problem**: `banUser()`, `verifyUser()`, and `deleteJob()` call `supabase.from(...)` directly from the client component using the anon key. This means the RLS policies on the `profiles` and `jobs` tables must be permissive enough for this to work — which is a policy misconfiguration risk. Any client knowing the target user ID could attempt these mutations.
+- **Fix Required**: Move `banUser`, `verifyUser`, and `deleteJob` to Server Actions in `app/actions/admin.ts` with admin role verification.
+
+#### BUG-06 — `wallet/page.tsx` is a Client Component fetching data in `useEffect` (LOW-MEDIUM)
+- **File**: `app/wallet/page.tsx`, lines 1–6, 79–106
+- **Problem**: The wallet page is marked `'use client'` and does all data fetching in a `useEffect`. This means:
+  1. The balance flashes as "0" on first render before the effect runs.
+  2. No SSR caching benefits.
+  3. The `revalidatePath('/wallet')` calls in server actions don't actually refresh the client-side state — the page must be manually refreshed to see updated balance after withdrawal.
+- **Note**: The withdrawal form DOES optimistically update the balance locally (`setProfile({ ...profile, balance: profile.balance - amount })`), but newly confirmed deposits won't show without a hard refresh.
+- **Fix**: Convert to a Server Component + Client Component pattern (like `/profile/[username]`). Or at minimum, add a manual "refresh" button on the wallet page.
+
+#### BUG-07 — Chargily uses TEST environment (`pay.chargily.net/test/`) (REMINDER)
+- **File**: `app/wallet/deposit/actions.ts`, line 181
+- **Problem**: The Chargily API URL still points to the test environment. This must be changed to production before going live.
+- **Fix**: Change `https://pay.chargily.net/test/api/v2/checkouts` → `https://pay.chargily.net/api/v2/checkouts` in production.
+
+#### BUG-08 — `sendNotificationAction` requires an authenticated session (EDGE CASE)
+- **File**: `app/actions/notifications.ts`, lines 88–90
+- **Problem**: `sendNotificationAction` calls `supabase.auth.getUser()` and returns early if there's no user. But `confirmDepositAction` (which uses the admin service-role client) calls `sendNotificationAction`. Since the service-role client doesn't carry a user session, this check will always fail and notifications will **never be sent** for deposit confirmations.
+- **Fix**: `sendNotificationAction` called from the context of `confirmDepositAction` should use the service-role `supabase.rpc('create_notification', ...)` directly instead of going through the auth-dependent helper.
+
+#### BUG-09 — `auth/callback/route.ts` is vulnerable to open redirect (LOW)
+- **File**: `app/auth/callback/route.ts`, line 8
+- **Problem**: The `next` parameter is taken directly from the URL query string and used as a redirect target without validation: `const next = searchParams.get('next') ?? '/dashboard'`. An attacker could craft a link like `.../auth/callback?next=https://evil.com` and redirect users after login.
+- **Fix**: Validate that `next` starts with `/` (is a relative path):
+```typescript
+const rawNext = searchParams.get('next') ?? '/dashboard'
+const next = rawNext.startsWith('/') ? rawNext : '/dashboard'
+```
+
+#### BUG-10 — Metadata update for sender info is non-atomic and silently fails (MEDIUM)
+- **File**: `app/wallet/deposit/actions.ts`, lines 118–132
+- **Problem**: The `request_deposit` RPC creates the transaction, then in a **second, separate** database call the server action updates the metadata with `sender_name` and `sender_account`. If the second call fails (network issue, etc.), the transaction exists but with NO sender metadata. The admin sees "—" instead of the sender's name and can't verify the deposit.
+- **Fix**: Add `sender_name` and `sender_account` parameters to the `request_deposit` SQL function so all data is written atomically in a single INSERT, or pass them as a JSONB metadata parameter.
+
+---
+
+### ⚠️ NAVIGATION & ROUTING INCONSISTENCIES
+
+#### NAV-01 — `/admin/withdrawals` duplicates functionality of `/admin/payments`
+- Both pages show pending withdrawals and have a "Confirm Payout" button. They call the **same** `confirmPayoutAction`. The `/admin/payments` page shows BOTH deposits and withdrawals, while `/admin/withdrawals` shows only withdrawals.
+- **Recommendation**: Remove the withdrawals table from `/admin/payments` (keep only deposits there) and let `/admin/withdrawals` own the withdrawal approval flow. Or consolidate into a single tabbed page.
+
+#### NAV-02 — `wallet/page.tsx` "شحن الرصيد" only shown to clients, not "both" role
+- **File**: `app/wallet/page.tsx`, line 156: `const isClient = profile.role === 'client' || profile.role === 'both'`
+- This is actually correct — just confirm the logic is consistently applied everywhere the role check appears.
+
+#### NAV-03 — No middleware protecting admin routes from unauthenticated access
+- Currently, admin route protection is done via client-side `useEffect` redirects in `AdminContent.tsx` and `AdminWithdrawalsPage`. Server Components like `/admin/payments/page.tsx` have **no protection at all** (BUG-04 above).
+- **Recommendation**: Add a Next.js middleware (`middleware.ts`) that protects all `/admin/*` routes server-side.
+
+---
+
+### ✅ WHAT IS WORKING WELL
+
+1. **Chargily Webhook Handler** (`/api/webhooks/chargily/route.ts`): Excellent implementation. Timing-safe HMAC comparison, idempotency via unique `reference` constraint, handles both deposit and funding metadata formats, atomic `process_deposit` RPC call. Production-ready.
+
+2. **`requestWithdrawalAction`** (`app/actions/wallet.ts`): Clean server action. Proper auth check, server-side validation, uses atomic `request_withdrawal` RPC to prevent double-spending. Correct error message passthrough for known DB errors.
+
+3. **`confirmPayoutAction`** (`app/actions/admin.ts`): Good implementation. Auth + admin verification, status check before update, notification on success, proper revalidation.
+
+4. **Deposit UI** (`app/wallet/deposit/page.tsx`): Complete, well-structured flow. Sender name/account fields properly validated on both client and server. File upload with type and size checks. Chargily redirect flow clean.
+
+5. **`request_deposit` SQL function** (`deposit.sql`): Solid. Amount validation, method whitelist, receipt requirement for manual methods, all handled at the DB level.
+
+6. **Review System**: Self-review prevention, party verification, duplicate prevention via UNIQUE constraint — properly multi-layered.
+
+7. **Notification System**: `create_notification` as SECURITY DEFINER RPC is the right pattern for cross-user notifications.
+
+---
+
+### 🔧 REQUIRED FIXES (Priority Order)
+
+| Priority | Bug ID | Description | File to Edit |
+|----------|--------|-------------|--------------|
+| 🔴 CRITICAL | BUG-01 | Add admin auth check to `confirmDepositAction` | `app/actions/admin.ts` |
+| 🔴 HIGH | BUG-04 | Add server-side admin guard to `/admin/payments` page | `app/admin/payments/page.tsx` |
+| 🟠 HIGH | BUG-02 | Fix race condition in balance update (use atomic SQL) | `app/actions/admin.ts` |
+| 🟠 HIGH | BUG-03 | Derive userId server-side in deposit actions | `app/wallet/deposit/actions.ts` |
+| 🟠 HIGH | BUG-05 | Move admin mutations to Server Actions | `app/admin/AdminContent.tsx` + `app/actions/admin.ts` |
+| 🟡 MEDIUM | BUG-08 | Fix notification delivery in confirmDepositAction | `app/actions/admin.ts` |
+| 🟡 MEDIUM | BUG-10 | Make sender metadata atomic with deposit creation | `app/wallet/deposit/actions.ts` + `deposit.sql` |
+| 🟡 MEDIUM | NAV-03 | Add middleware for `/admin/*` route protection | `middleware.ts` (create new) |
+| 🟢 LOW | BUG-09 | Validate `next` param in auth callback | `app/auth/callback/route.ts` |
+| 🟢 LOW | BUG-06 | Convert wallet page to Server Component | `app/wallet/page.tsx` |
+| ⬜ REMINDER | BUG-07 | Switch Chargily to production URL before launch | `app/wallet/deposit/actions.ts` |
+
+---
+
+### 🏗️ ARCHITECTURAL PLAN — National ID Verification (KYC) & Enhanced User Profiles
+
+#### Overview
+KYC (Know Your Customer) and Enhanced Profiles are the next major feature set. The goal is to:
+1. Require identity verification before users can withdraw funds above a threshold.
+2. Store KYC documents securely (Supabase Storage, private bucket).
+3. Give admins a review workflow to approve/reject KYC submissions.
+4. Display verified status on public profiles.
+
+---
+
+#### Database Schema Changes Required
+
+```sql
+-- 1. KYC submissions table
+CREATE TABLE public.kyc_submissions (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  id_type       TEXT NOT NULL CHECK (id_type IN ('national_id', 'passport', 'driving_license')),
+  id_number     TEXT,                     -- hashed or encrypted before storage
+  id_front_url  TEXT NOT NULL,            -- Supabase Storage path (private bucket)
+  id_back_url   TEXT,                     -- Optional (not always needed)
+  selfie_url    TEXT,                     -- Selfie with ID for liveness
+  rejection_reason TEXT,                  -- Admin sets this on rejection
+  reviewed_by   UUID REFERENCES profiles(id),
+  reviewed_at   TIMESTAMPTZ,
+  submitted_at  TIMESTAMPTZ DEFAULT NOW(),
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Add KYC status column to profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS kyc_status TEXT DEFAULT 'none'
+    CHECK (kyc_status IN ('none', 'pending', 'approved', 'rejected')),
+  ADD COLUMN IF NOT EXISTS kyc_submitted_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS phone_number TEXT,       -- For Enhanced Profile
+  ADD COLUMN IF NOT EXISTS date_of_birth DATE,      -- For Enhanced Profile
+  ADD COLUMN IF NOT EXISTS id_number_hash TEXT;     -- SHA-256 of national ID to prevent duplicates
+
+-- 3. Storage bucket (PRIVATE — no public access)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('kyc-documents', 'kyc-documents', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS: Only the owner can INSERT; only service-role can SELECT
+-- (Admin reads via service role client, not anon key)
+
+-- 4. RPC to approve KYC
+CREATE OR REPLACE FUNCTION public.approve_kyc(p_submission_id UUID, p_admin_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE public.kyc_submissions
+  SET status = 'approved', reviewed_by = p_admin_id, reviewed_at = NOW()
+  WHERE id = p_submission_id;
+  
+  UPDATE public.profiles
+  SET kyc_status = 'approved', is_verified = true
+  WHERE id = (SELECT user_id FROM public.kyc_submissions WHERE id = p_submission_id);
+END;
+$$;
+
+-- 5. RPC to reject KYC
+CREATE OR REPLACE FUNCTION public.reject_kyc(p_submission_id UUID, p_admin_id UUID, p_reason TEXT)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  UPDATE public.kyc_submissions
+  SET status = 'rejected', reviewed_by = p_admin_id, reviewed_at = NOW(), rejection_reason = p_reason
+  WHERE id = p_submission_id;
+
+  UPDATE public.profiles
+  SET kyc_status = 'rejected'
+  WHERE id = (SELECT user_id FROM public.kyc_submissions WHERE id = p_submission_id);
+END;
+$$;
+```
+
+---
+
+#### Application Routes & Components to Create
+
+| Route | Purpose |
+|-------|---------|
+| `app/kyc/page.tsx` | User-facing KYC submission form (upload national ID front/back + selfie) |
+| `app/kyc/status/page.tsx` | Show user their current KYC status (pending / approved / rejected + reason) |
+| `app/admin/kyc/page.tsx` | Admin review queue for KYC submissions |
+| `app/actions/kyc.ts` | Server Actions: `submitKycAction`, `approveKycAction`, `rejectKycAction` |
+
+---
+
+#### KYC File Upload Security Rules
+- Upload to the **private** `kyc-documents` bucket (NOT `attachments` or `receipts`).
+- File path: `{userId}/national_id_front.jpg` — always overwrite (one submission per user).
+- Admin retrieves signed URLs using the service-role client (short-lived, 60 seconds).
+- **Never expose KYC document URLs publicly.** Use `supabase.storage.from('kyc-documents').createSignedUrl(path, 60)`.
+
+---
+
+#### KYC Gating Logic (Withdrawal Threshold)
+```typescript
+// In requestWithdrawalAction (app/actions/wallet.ts):
+// Add before the RPC call:
+if (amount >= 50000) { // Gate large withdrawals behind KYC
+  const { data: profile } = await supabase.from('profiles').select('kyc_status').eq('id', user.id).single()
+  if (profile?.kyc_status !== 'approved') {
+    return { success: false, error: 'يجب إكمال التحقق من الهوية (KYC) للسحب بمبالغ تتجاوز 50,000 دج' }
+  }
+}
+```
+
+---
+
+#### Enhanced Profile Fields
+When KYC is implemented, the settings page (`app/settings/page.tsx`) should add:
+- **Phone Number** field (with OTP verification via Supabase Auth phone)
+- **Date of Birth** field (used for age verification)
+- **KYC Status Badge** visible on the public profile (e.g., "✓ موثق رسمياً")
+- **Account Tier**: `basic` (no KYC) → `verified` (KYC approved) — affects withdrawal limits and trust badges on proposals
+
+---
+
+#### Admin KYC Review Workflow
+1. Admin navigates to `/admin/kyc`
+2. Sees a list of pending submissions with: username, submission date, ID type
+3. Clicks "مراجعة" to open a detail view with signed document URLs
+4. Can "قبول" → calls `approveKycAction(submissionId)` → updates `kyc_status = 'approved'`, sets `is_verified = true`, sends notification
+5. Can "رفض" → opens a modal to enter rejection reason → calls `rejectKycAction(submissionId, reason)` → sends notification with reason
+
+---
+
+#### Security Principles for KYC
+- **Never store raw national ID numbers** — hash them (SHA-256) to detect duplicates.
+- **Signed URL expiry**: All KYC document URLs should expire in 60 seconds maximum.
+- **One submission at a time**: Prevent a user from submitting new KYC while `status = 'pending'`.
+- **Audit log**: Log all admin review actions with `reviewed_by` and `reviewed_at` in `kyc_submissions`.
+- **Notification on every status change**: User gets notified when: submission received, approved, rejected (with reason).
+
+---
+
+### 📋 GENERAL RECOMMENDATIONS
+
+1. **Add `middleware.ts`** to protect all `/admin/*`, `/wallet`, `/contracts`, `/jobs/new` routes at the Next.js middleware layer. Currently these all rely on client-side `useEffect` redirects which expose a flash of content before the redirect fires.
+
+2. **Move wallet page to Server Component**: Convert `app/wallet/page.tsx` to a Server Component pattern (matching `/profile/[username]`) so `revalidatePath` actually works and balance shows immediately on load.
+
+3. **Add Zod schema validation** to all server actions. Currently validation is done with manual `if` checks. Using Zod schemas makes this more robust and gives automatic TypeScript inference.
+
+4. **Rate-limit the deposit submission**: A user could spam the deposit form creating hundreds of pending deposit records. Add a simple count check: if a user already has 3+ pending deposits, reject the new one.
+
+5. **Add `process.env` checks at startup**: Validate that `CHARGILY_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `NEXT_PUBLIC_APP_URL` are set. If any are missing, log a clear error on server startup rather than failing silently at runtime.
+
+6. **Switch Chargily to production before launch**: Change line 181 in `app/wallet/deposit/actions.ts` from `pay.chargily.net/test/` to `pay.chargily.net/`.
+
+7. **Add `?deposit=success` handler to wallet page**: The Chargily `success_url` redirects to `/wallet?deposit=success` but the wallet page doesn't show any success banner for this case. Add detection for this query param and show a success alert.
+
+---
+
+### 🗺️ CURRENT ARCHITECTURE MAP (Updated)
+
+```
+app/
+├── actions/
+│   ├── admin.ts         ⚠️  confirmDepositAction missing auth check (BUG-01)
+│   ├── wallet.ts        ✅  requestWithdrawalAction — clean
+│   └── notifications.ts ⚠️  sendNotification breaks when called without user session (BUG-08)
+├── admin/
+│   ├── AdminContent.tsx ⚠️  client-side mutations need to move to Server Actions (BUG-05)
+│   ├── page.tsx         ✅  delegates to AdminContent
+│   ├── payments/
+│   │   ├── page.tsx     🔴  NO admin auth guard (BUG-04)
+│   │   └── ClientPaymentsPage.tsx ✅  UI correct, calls correct actions
+│   └── withdrawals/
+│       └── page.tsx     ✅  has admin check in useEffect (still should be middleware)
+├── api/
+│   └── webhooks/chargily/route.ts ✅  excellent — timing-safe HMAC, idempotent
+├── auth/
+│   └── callback/route.ts ⚠️  open redirect on `next` param (BUG-09)
+├── wallet/
+│   ├── page.tsx         🟡  client component, revalidatePath won't work fully (BUG-06)
+│   └── deposit/
+│       ├── page.tsx     ⚠️  passes userId from client to server action (BUG-03)
+│       ├── actions.ts   ⚠️  accepts userId param, non-atomic metadata (BUG-03, BUG-10)
+│       └── deposit.sql  ✅  request_deposit RPC is correct
+└── settings/page.tsx    ✅  client mutations acceptable here (own profile only, RLS protects)
+```
