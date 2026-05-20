@@ -67,9 +67,16 @@ export async function uploadReceiptAction(formData: FormData): Promise<UploadRec
     const ext = file.name.split('.').pop()
     const filePath = `${userId}/${Date.now()}.${ext}`
 
+    // Convert File to Buffer to avoid Node.js stream errors with Supabase JS
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
     const { data, error: uploadError } = await supabase.storage
       .from('receipts')
-      .upload(filePath, file, { upsert: false })
+      .upload(filePath, buffer, { 
+        upsert: false,
+        contentType: file.type 
+      })
 
     if (uploadError) {
       console.error('[uploadReceiptAction] Storage error:', uploadError)
@@ -84,7 +91,8 @@ export async function uploadReceiptAction(formData: FormData): Promise<UploadRec
 
   } catch (err) {
     console.error('[uploadReceiptAction] Unexpected error:', err)
-    return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' }
+    const msg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+    return { success: false, error: msg }
   }
 }
 
@@ -140,23 +148,33 @@ export async function submitManualDepositAction(
       return { success: false, error: 'يجب إدخال رقم الحساب/CCP الخاص بالمرسل' }
     }
 
-    // BUG-10 FIX: Pass metadata atomically inside the RPC call so sender info
-    // is written in the same INSERT as the transaction — no second round-trip.
-    const { data, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id: userId,
-      p_amount: amount,
-      p_method: method,
-      p_receipt_url: receiptUrl,
-      p_metadata: {
-        sender_name: senderName,
-        sender_account: senderAccount,
-      },
-    })
+    // BUG-10 FIX: Insert transaction directly via Admin client, bypassing 
+    // any buggy or overloaded request_deposit RPCs that might incorrectly 
+    // update the balance or throw ambiguity errors.
+    const { data: txn, error: insertError } = await supabase
+      .from('transactions')
+      .insert({
+        from_user_id: userId,
+        amount: amount,
+        type: 'deposit',
+        status: 'pending',
+        payment_method: method,
+        receipt_url: receiptUrl,
+        note: 'طلب إيداع — بانتظار التأكيد',
+        metadata: {
+          sender_name: senderName,
+          sender_account: senderAccount,
+        }
+      })
+      .select('id')
+      .single()
 
-    if (rpcError) {
-      console.error('[submitManualDepositAction] RPC error:', rpcError)
-      return { success: false, error: rpcError.message || 'فشل إنشاء طلب الإيداع' }
+    if (insertError || !txn) {
+      console.error('[submitManualDepositAction] Insert error:', insertError)
+      return { success: false, error: 'فشل إنشاء طلب الإيداع' }
     }
+    
+    const data = txn.id
 
     revalidatePath('/wallet')
     revalidatePath('/admin/payments')
@@ -169,7 +187,8 @@ export async function submitManualDepositAction(
 
   } catch (err) {
     console.error('[submitManualDepositAction] Unexpected error:', err)
-    return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' }
+    const msg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+    return { success: false, error: msg }
   }
 }
 
@@ -214,19 +233,30 @@ export async function initiateChargilyDepositAction(
       return { success: false, error: 'بوابة الدفع غير متاحة حالياً' }
     }
 
-    // Create pending transaction first
-    const { data: txnId, error: rpcError } = await supabase.rpc('request_deposit', {
-      p_user_id: userId,
-      p_amount: amount,
-      p_method: 'edahabia',
-      p_receipt_url: null,
-      p_metadata: null,
-    })
+    // Create pending transaction directly via Admin client, bypassing 
+    // any buggy or overloaded request_deposit RPCs that might incorrectly 
+    // update the balance or throw ambiguity errors.
+    const { data: txn, error: insertError } = await supabase
+      .from('transactions')
+      .insert({
+        from_user_id: userId,
+        amount: amount,
+        type: 'deposit',
+        status: 'pending',
+        payment_method: 'edahabia',
+        receipt_url: null,
+        note: 'طلب إيداع — بانتظار التأكيد',
+        metadata: {}
+      })
+      .select('id')
+      .single()
 
-    if (rpcError) {
-      console.error('[initiateChargilyDepositAction] RPC error:', rpcError)
-      return { success: false, error: rpcError.message || 'فشل إنشاء طلب الدفع' }
+    if (insertError || !txn) {
+      console.error('[initiateChargilyDepositAction] Insert error:', insertError)
+      return { success: false, error: 'فشل إنشاء طلب الدفع' }
     }
+    
+    const txnId = txn.id
 
     // Call Chargily API v2
     // NOTE: Change to https://pay.chargily.net/api/v2/checkouts before going live
@@ -269,6 +299,7 @@ export async function initiateChargilyDepositAction(
 
   } catch (err) {
     console.error('[initiateChargilyDepositAction] Unexpected error:', err)
-    return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' }
+    const msg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+    return { success: false, error: msg }
   }
 }
