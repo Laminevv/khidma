@@ -28,7 +28,7 @@ DECLARE
   v_status  TEXT;
 BEGIN
   -- Lock the transaction row to prevent concurrent confirmations
-  SELECT from_user_id, amount, status
+  SELECT to_user_id, amount, status
     INTO v_user_id, v_amount, v_status
     FROM public.transactions
    WHERE id = p_transaction_id

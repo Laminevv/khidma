@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import FileUpload from '@/app/components/FileUpload'
+import AvatarCropModal from '@/app/components/AvatarCropModal'
 
 interface Profile {
   id: string
@@ -47,6 +48,7 @@ export default function SettingsPage() {
   const [skillInput, setSkillInput] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
 
   // Portfolio Form State
   const [newPortfolio, setNewPortfolio] = useState({
@@ -118,18 +120,29 @@ export default function SettingsPage() {
     setSaving(false)
   }
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Step 1: When user selects a file, open the crop modal
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !profile) return
-    
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'حجم الصورة يجب أن لا يتجاوز 5MB' })
+    e.target.value = '' // Reset so re-selecting the same file works
+
+    if (file.size > 15 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'حجم الصورة يجب أن لا يتجاوز 15MB' })
       return
     }
 
+    const url = URL.createObjectURL(file)
+    setCropImageSrc(url)
+  }
+
+  // Step 2: After user confirms the crop, upload the cropped blob
+  const handleCroppedUpload = async (blob: Blob) => {
+    if (!profile) return
+    setCropImageSrc(null)
     setAvatarUploading(true)
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${profile.id}_${Date.now()}.${fileExt}`
+
+    const fileName = `${profile.id}_${Date.now()}.jpg`
+    const file = new File([blob], fileName, { type: 'image/jpeg' })
 
     const { error, data } = await supabase.storage
       .from('avatars')
@@ -141,11 +154,13 @@ export default function SettingsPage() {
       const { data: publicUrlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName)
-      
+
       setProfile({ ...profile, avatar_url: publicUrlData.publicUrl })
-      
+
       // Auto save the new avatar url
       await supabase.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', profile.id)
+      setMessage({ type: 'success', text: 'تم تحديث الصورة الشخصية بنجاح!' })
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
     }
     setAvatarUploading(false)
   }
@@ -293,7 +308,7 @@ export default function SettingsPage() {
                   >
                     <span className="text-white text-xs font-medium">تغيير الصورة</span>
                   </button>
-                  <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
+                  <input type="file" ref={avatarInputRef} onChange={handleAvatarSelect} accept="image/*" className="hidden" />
                 </div>
                 <div className="text-center sm:text-right">
                   <h3 className="font-semibold text-gray-900 mb-1">الصورة الشخصية</h3>
@@ -486,6 +501,18 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Avatar Crop Modal */}
+      {cropImageSrc && (
+        <AvatarCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCroppedUpload}
+          onCancel={() => {
+            URL.revokeObjectURL(cropImageSrc)
+            setCropImageSrc(null)
+          }}
+        />
+      )}
     </div>
   )
 }

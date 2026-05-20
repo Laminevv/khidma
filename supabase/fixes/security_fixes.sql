@@ -23,7 +23,7 @@ DECLARE
   v_status  TEXT;
 BEGIN
   -- Lock the transaction row to prevent concurrent confirmations
-  SELECT from_user_id, amount, status
+  SELECT to_user_id, amount, status
     INTO v_user_id, v_amount, v_status
     FROM public.transactions
    WHERE id = p_transaction_id
@@ -39,7 +39,7 @@ BEGIN
 
   -- Atomically credit the user's wallet balance
   UPDATE public.profiles
-     SET balance = balance + v_amount
+     SET deposit_balance = deposit_balance + v_amount
    WHERE id = v_user_id;
 
   -- Mark the transaction as completed, recording which admin confirmed it

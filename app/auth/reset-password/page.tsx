@@ -16,8 +16,29 @@ export default function ResetPasswordPage() {
     setLoading(true)
     setError('')
 
-    if (password.length < 6) {
-      setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+    // Strict password validation
+    if (password.length < 8) {
+      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل')
+      setLoading(false)
+      return
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل (A-Z)')
+      setLoading(false)
+      return
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل (a-z)')
+      setLoading(false)
+      return
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على رقم واحد على الأقل')
+      setLoading(false)
+      return
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      setError('كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل (!@#$%^&*...)')
       setLoading(false)
       return
     }
@@ -65,7 +86,7 @@ export default function ResetPasswordPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور الجديدة</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="6 أحرف على الأقل" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
+                placeholder="8 أحرف، حرف كبير، صغير، رقم ورمز" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
             </div>
 
             <button type="submit" disabled={loading || !password}

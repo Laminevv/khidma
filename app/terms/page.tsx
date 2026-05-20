@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'شروط الاستخدام',
@@ -25,7 +26,10 @@ function Section({ id, icon, title, children }: { id: string; icon: string; titl
   )
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   const sections = [
     { id: 'intro', title: 'مقدمة وتعريفات', icon: '📋' },
     { id: 'registration', title: 'التسجيل والحسابات', icon: '👤' },
@@ -50,7 +54,7 @@ export default function TermsPage() {
       {/* Navbar */}
       <nav className="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white" />

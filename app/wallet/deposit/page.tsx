@@ -181,7 +181,7 @@ export default function DepositPage() {
           <Link href="/wallet" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
             ← المحفظة
           </Link>
-          <Link href="/" className="flex items-center gap-1.5">
+          <Link href="/dashboard" className="flex items-center gap-1.5">
             <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white" />
