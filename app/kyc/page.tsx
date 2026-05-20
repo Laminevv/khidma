@@ -365,14 +365,16 @@ export default function KycSubmissionPage() {
               />
 
               {/* Back — Optional */}
-              <UploadZone
-                label="الوجه الخلفي"
-                icon="🔄"
-                slot={back}
-                inputRef={backRef}
-                onFileChange={(file) => handleFileUpload(file, 'back', setBack)}
-                onClear={() => setBack({ file: null, path: null, uploading: false, compressing: false, error: null })}
-              />
+              {idType !== 'passport' && (
+                <UploadZone
+                  label="الوجه الخلفي"
+                  icon="🔄"
+                  slot={back}
+                  inputRef={backRef}
+                  onFileChange={(file) => handleFileUpload(file, 'back', setBack)}
+                  onClear={() => setBack({ file: null, path: null, uploading: false, compressing: false, error: null })}
+                />
+              )}
 
               {/* Selfie — Optional */}
               <UploadZone

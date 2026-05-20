@@ -154,7 +154,8 @@ export async function submitManualDepositAction(
     const { data: txn, error: insertError } = await supabase
       .from('transactions')
       .insert({
-        from_user_id: userId,
+        to_user_id: userId,
+        from_user_id: null,
         amount: amount,
         type: 'deposit',
         status: 'pending',
@@ -239,7 +240,8 @@ export async function initiateChargilyDepositAction(
     const { data: txn, error: insertError } = await supabase
       .from('transactions')
       .insert({
-        from_user_id: userId,
+        to_user_id: userId,
+        from_user_id: null,
         amount: amount,
         type: 'deposit',
         status: 'pending',
