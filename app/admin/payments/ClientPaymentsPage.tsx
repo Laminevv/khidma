@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { confirmPayoutAction, confirmDepositAction } from '@/app/actions/admin'
+import { confirmPayoutAction, confirmDepositAction, rejectDepositAction } from '@/app/actions/admin'
 
 export interface Withdrawal {
   id: string
@@ -59,6 +59,21 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, i
       setDeposits((prev) => prev.filter((d) => d.id !== id))
     } else {
       alert(res.error || 'حدث خطأ أثناء تأكيد الإيداع')
+    }
+    setLoadingId(null)
+  }
+
+  const handleRejectDeposit = async (id: string) => {
+    if (!confirm('هل أنت متأكد من رفض طلب الإيداع هذا؟ سيتم إشعار المستخدم بذلك. (لا يمكن التراجع)')) return
+    
+    setLoadingId(id)
+    const res = await rejectDepositAction(id)
+    
+    if (res.success) {
+      alert('❌ تم رفض الإيداع')
+      setDeposits((prev) => prev.filter((d) => d.id !== id))
+    } else {
+      alert(res.error || 'حدث خطأ أثناء رفض الإيداع')
     }
     setLoadingId(null)
   }
@@ -167,13 +182,22 @@ export default function ClientPaymentsPage({ totalRevenue, initialWithdrawals, i
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleConfirmDeposit(d.id)}
-                        disabled={loadingId === d.id}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {loadingId === d.id ? 'جاري التأكيد...' : 'تأكيد الإيداع ✅'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleConfirmDeposit(d.id)}
+                          disabled={loadingId === d.id}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          {loadingId === d.id ? '...' : 'تأكيد ✅'}
+                        </button>
+                        <button
+                          onClick={() => handleRejectDeposit(d.id)}
+                          disabled={loadingId === d.id}
+                          className="bg-red-600 hover:bg-red-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          {loadingId === d.id ? '...' : 'رفض ❌'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

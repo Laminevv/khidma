@@ -145,14 +145,14 @@ export async function confirmDepositAction(transactionId: string) {
     // Fetch user info for the notification (transaction is now completed)
     const { data: txn } = await supabase
       .from('transactions')
-      .select('from_user_id, amount')
+      .select('to_user_id, amount')
       .eq('id', transactionId)
       .single()
 
     // BUG-08 FIX: Use service-role client directly for notification RPC
-    if (txn?.from_user_id) {
+    if (txn?.to_user_id) {
       await supabase.rpc('create_notification', {
-        p_user_id: txn.from_user_id,
+        p_user_id: txn.to_user_id,
         p_type: 'deposit_completed',
         p_title: 'تم تأكيد إيداعك بنجاح! 💰',
         p_body: `تم إضافة مبلغ ${txn.amount?.toLocaleString()} دج إلى محفظتك.`,
@@ -166,6 +166,67 @@ export async function confirmDepositAction(transactionId: string) {
   } catch (error) {
     console.error('confirmDepositAction unexpected error:', error)
     return { success: false, error: 'An unexpected server error occurred.' }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// rejectDepositAction — reject a manual bank deposit
+// ─────────────────────────────────────────────────────────────
+export async function rejectDepositAction(transactionId: string) {
+  try {
+    const { user, error: authError } = await requireAdmin()
+    if (!user) return { success: false, error: authError }
+
+    const supabase = getAdminSupabase()
+
+    // Fetch the transaction
+    const { data: txn, error: txnError } = await supabase
+      .from('transactions')
+      .select('id, to_user_id, amount, metadata, status')
+      .eq('id', transactionId)
+      .single()
+
+    if (txnError || !txn) {
+      console.error('Transaction fetch error:', txnError?.message)
+      return { success: false, error: 'Transaction not found' }
+    }
+
+    if (txn.status !== 'pending') {
+      return { success: false, error: 'Transaction is not pending' }
+    }
+
+    const newMetadata = {
+      ...((txn.metadata as Record<string, unknown>) || {}),
+      resolved_by: user.id,
+      resolved_at: new Date().toISOString(),
+    }
+
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({ status: 'rejected', metadata: newMetadata })
+      .eq('id', transactionId)
+
+    if (updateError) {
+      console.error('Transaction update error:', updateError.message)
+      return { success: false, error: 'Failed to reject deposit. Please try again.' }
+    }
+
+    if (txn.to_user_id) {
+      await supabase.rpc('create_notification', {
+        p_user_id: txn.to_user_id,
+        p_type: 'deposit_rejected',
+        p_title: 'تم رفض طلب الإيداع ❌',
+        p_body: `تم رفض طلب إيداعك بقيمة ${txn.amount?.toLocaleString()} دج. يرجى التحقق من صحة الوصل أو التواصل مع الدعم.`,
+        p_link: '/wallet',
+      })
+    }
+
+    revalidatePath('/admin/payments')
+    revalidatePath('/wallet')
+    return { success: true }
+  } catch (error) {
+    console.error('rejectDepositAction unexpected error:', error)
+    return { success: false, error: 'An unexpected server error occurred. Please try again.' }
   }
 }
 
