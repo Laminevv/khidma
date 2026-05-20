@@ -203,12 +203,12 @@ export async function rejectDepositAction(transactionId: string) {
 
     const { error: updateError } = await supabase
       .from('transactions')
-      .update({ status: 'rejected', metadata: newMetadata })
+      .update({ status: 'failed', metadata: newMetadata })
       .eq('id', transactionId)
 
     if (updateError) {
       console.error('Transaction update error:', updateError.message)
-      return { success: false, error: 'Failed to reject deposit. Please try again.' }
+      return { success: false, error: `Failed to reject deposit: ${updateError.message}` }
     }
 
     if (txn.to_user_id) {
@@ -226,7 +226,8 @@ export async function rejectDepositAction(transactionId: string) {
     return { success: true }
   } catch (error) {
     console.error('rejectDepositAction unexpected error:', error)
-    return { success: false, error: 'An unexpected server error occurred. Please try again.' }
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    return { success: false, error: `An unexpected server error occurred: ${msg}` }
   }
 }
 
