@@ -90,19 +90,24 @@ export default function KycSubmissionPage() {
     setter: React.Dispatch<React.SetStateAction<UploadSlot>>
   ) => {
     // Validate locally before uploading
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
-      setter(prev => ({ ...prev, error: 'نوع الملف غير مسموح (JPG, PNG, WebP, PDF فقط)' }))
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf']
+    const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
+    const isHeic = ['.heic', '.heif'].includes(ext) || ['image/heic', 'image/heif'].includes(file.type.toLowerCase())
+    // Some browsers report HEIC as '' or 'application/octet-stream', so accept by extension too
+    if (!allowedTypes.includes(file.type) && !isHeic) {
+      setter(prev => ({ ...prev, error: 'نوع الملف غير مسموح (JPG, PNG, WebP, HEIC, PDF فقط)' }))
       return
     }
-    if (file.size > 15 * 1024 * 1024) {
-      setter(prev => ({ ...prev, error: 'حجم الملف يتجاوز 15MB' }))
+    if (file.size > 25 * 1024 * 1024) {
+      setter(prev => ({ ...prev, error: 'حجم الملف يتجاوز 25MB' }))
       return
     }
 
     // Compress image client-side to stay under Vercel's 4.5MB payload limit
+    // This also handles HEIC → JPEG conversion automatically
     let fileToUpload = file
-    if (file.type.startsWith('image/') && file.size > 3.5 * 1024 * 1024) {
+    const isImage = file.type.startsWith('image/') || isHeic
+    if (isImage && (file.size > 3.5 * 1024 * 1024 || isHeic)) {
       setter({ file, path: null, uploading: false, compressing: true, error: null })
       try {
         fileToUpload = await compressImage(file, {
@@ -111,8 +116,12 @@ export default function KycSubmissionPage() {
           quality: 0.82,
           maxSizeBytes: 3.5 * 1024 * 1024,
         })
-      } catch {
-        setter({ file: null, path: null, uploading: false, compressing: false, error: 'فشل ضغط الصورة. جرّب صورة أصغر.' })
+      } catch (err: unknown) {
+        // ImageCompressionError carries a specific Arabic message for the user
+        const message = err instanceof Error
+          ? err.message
+          : 'حدث خطأ أثناء معالجة الصورة في هاتفك، جرب صورة أخرى أو استخدم الحاسوب.'
+        setter({ file: null, path: null, uploading: false, compressing: false, error: message })
         return
       }
     }
@@ -505,7 +514,7 @@ function UploadZone({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,application/pdf"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,application/pdf"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0]
