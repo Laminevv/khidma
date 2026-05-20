@@ -333,8 +333,8 @@ export default function Home() {
           <div className="border-t border-gray-100 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
             <p>جميع الحقوق محفوظة © {new Date().getFullYear()} خدمة.dz</p>
             <div className="flex gap-6">
-              <Link href="#" className="hover:text-emerald-600 transition-colors">شروط الاستخدام</Link>
-              <Link href="#" className="hover:text-emerald-600 transition-colors">سياسة الخصوصية</Link>
+              <Link href="/terms" className="hover:text-emerald-600 transition-colors">شروط الاستخدام</Link>
+              <Link href="/privacy" className="hover:text-emerald-600 transition-colors">سياسة الخصوصية</Link>
               <Link href="#" className="hover:text-emerald-600 transition-colors">اتصل بنا</Link>
             </div>
           </div>

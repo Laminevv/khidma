@@ -433,7 +433,7 @@ export default function DepositPage() {
 
           <p className="text-center text-xs text-gray-400">
             بإرسال الطلب توافق على{' '}
-            <Link href="#" className="text-emerald-600 hover:underline">سياسة الإيداع</Link>
+            <Link href="/terms" className="text-emerald-600 hover:underline">سياسة الإيداع</Link>
           </p>
 
         </form>
