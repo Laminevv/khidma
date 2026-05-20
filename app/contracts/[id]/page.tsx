@@ -55,5 +55,11 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
   }))
 
-  return <ClientContractPage initialContract={contract} userId={user.id} reviews={reviews} />
+  let activeDispute = null
+  if (contract.status === 'disputed' || contract.status === 'under_review') {
+    const { data: dData } = await supabase.from('disputes').select('id, status').eq('contract_id', id).in('status', ['open', 'under_review']).single()
+    activeDispute = dData
+  }
+
+  return <ClientContractPage initialContract={contract} userId={user.id} reviews={reviews} activeDispute={activeDispute} />
 }

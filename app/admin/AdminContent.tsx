@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { banUserAction, verifyUserAction, deleteJobAction } from '@/app/actions/admin'
+import DisputesTab from './DisputesTab'
 interface Stats {
   total_users: number
   new_users_30d: number
@@ -39,7 +40,7 @@ interface Job {
   profiles: { username: string; full_name: string }
 }
 
-type Tab = 'overview' | 'users' | 'jobs'
+type Tab = 'overview' | 'users' | 'jobs' | 'disputes'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -204,6 +205,7 @@ export default function AdminPage() {
             { key: 'overview', label: '📊 نظرة عامة' },
             { key: 'users',    label: '👥 المستخدمون' },
             { key: 'jobs',     label: '📋 المشاريع' },
+            { key: 'disputes', label: '⚖️ النزاعات' },
           ].map((t) => (
             <button
               key={t.key}
@@ -252,10 +254,10 @@ export default function AdminPage() {
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right">
                   📋 مراقبة المشاريع
                 </button>
-                <Link href="/admin/payments"
-                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right block">
-                  💳 الإدارة المالية
-                </Link>
+                <button onClick={() => setTab('disputes')}
+                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right">
+                  ⚖️ فض النزاعات
+                </button>
                 <Link href="/admin/withdrawals"
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right block">
                   💸 طلبات السحب
@@ -450,6 +452,9 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ── DISPUTES ── */}
+        {tab === 'disputes' && <DisputesTab />}
 
       </div>
     </div>

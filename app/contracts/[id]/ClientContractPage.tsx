@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisputeAction, requestCancellationAction, acceptCancellationAction, rejectCancellationAction } from './actions'
+import DisputeChatModal from './DisputeChatModal'
 
 interface Milestone {
   id: string
@@ -86,7 +87,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
   )
 }
 
-export default function ClientContractPage({ initialContract, userId, reviews: initialReviews = [] }: { initialContract: Contract, userId: string, reviews?: Review[] }) {
+export default function ClientContractPage({ initialContract, userId, reviews: initialReviews = [], activeDispute }: { initialContract: Contract, userId: string, reviews?: Review[], activeDispute?: any }) {
   const [contract, setContract] = useState<Contract>(initialContract)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
@@ -107,6 +108,8 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeLoading, setDisputeLoading] = useState(false)
+  
+  const [showDisputeChat, setShowDisputeChat] = useState(false)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -365,17 +368,23 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
               )}
             </div>
 
-            {contract.status === 'disputed' && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6 text-red-800">
+            {(contract.status === 'disputed' || contract.status === 'under_review') && activeDispute && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6 text-red-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">⚖️</div>
                   <div>
                     <h3 className="font-bold text-red-900 mb-1">تم تجميد هذا العقد بسبب نزاع</h3>
                     <p className="text-sm text-red-700 leading-relaxed">
-                      فريق الإدارة يقوم حالياً بمراجعة العقد وسيتواصل معكم قريباً عبر الرسائل الخاصة للوصول إلى حل يرضي الطرفين.
+                      فريق الإدارة يقوم حالياً بمراجعة العقد. يرجى التواصل عبر مركز النزاعات للوصول إلى حل.
                     </p>
                   </div>
                 </div>
+                <button
+                  onClick={() => setShowDisputeChat(true)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  💬 فتح مركز النزاعات
+                </button>
               </div>
             )}
 
@@ -718,6 +727,11 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Dispute Chat Modal ── */}
+      {showDisputeChat && activeDispute && (
+        <DisputeChatModal disputeId={activeDispute.id} currentUserId={userId} onClose={() => setShowDisputeChat(false)} />
       )}
     </div>
   )
