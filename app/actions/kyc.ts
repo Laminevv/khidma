@@ -131,9 +131,16 @@ export async function uploadKycDocumentAction(
     // Deterministic path: always overwrite on re-submission
     const filePath = `${user.id}/${documentType}.${ext}`
 
+    // Convert File to Buffer to avoid Node.js stream errors with Supabase JS
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
     const { data, error: uploadError } = await supabase.storage
       .from('kyc-documents')
-      .upload(filePath, file, { upsert: true })
+      .upload(filePath, buffer, {
+        upsert: true,
+        contentType: file.type,
+      })
 
     if (uploadError) {
       console.error('[uploadKycDocumentAction] Storage error:', uploadError)
@@ -145,7 +152,8 @@ export async function uploadKycDocumentAction(
 
   } catch (err) {
     console.error('[uploadKycDocumentAction] Unexpected error:', err)
-    return { success: false, error: 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.' }
+    const msg = err instanceof Error ? err.message : 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.'
+    return { success: false, error: msg }
   }
 }
 

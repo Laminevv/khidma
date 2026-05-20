@@ -9,6 +9,7 @@ import {
   submitKycAction,
   getKycStatusAction,
 } from '@/app/actions/kyc'
+import { compressImage } from '@/lib/compress-image'
 
 type IdType = 'national_id' | 'passport' | 'driving_license'
 
@@ -37,6 +38,7 @@ interface UploadSlot {
   file: File | null
   path: string | null
   uploading: boolean
+  compressing: boolean
   error: string | null
 }
 
@@ -50,9 +52,9 @@ export default function KycSubmissionPage() {
   // Form state
   const [idType, setIdType] = useState<IdType>('national_id')
   const [idNumber, setIdNumber] = useState('')
-  const [front, setFront] = useState<UploadSlot>({ file: null, path: null, uploading: false, error: null })
-  const [back, setBack] = useState<UploadSlot>({ file: null, path: null, uploading: false, error: null })
-  const [selfie, setSelfie] = useState<UploadSlot>({ file: null, path: null, uploading: false, error: null })
+  const [front, setFront] = useState<UploadSlot>({ file: null, path: null, uploading: false, compressing: false, error: null })
+  const [back, setBack] = useState<UploadSlot>({ file: null, path: null, uploading: false, compressing: false, error: null })
+  const [selfie, setSelfie] = useState<UploadSlot>({ file: null, path: null, uploading: false, compressing: false, error: null })
 
   const frontRef = useRef<HTMLInputElement>(null)
   const backRef = useRef<HTMLInputElement>(null)
@@ -93,21 +95,45 @@ export default function KycSubmissionPage() {
       setter(prev => ({ ...prev, error: 'نوع الملف غير مسموح (JPG, PNG, WebP, PDF فقط)' }))
       return
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setter(prev => ({ ...prev, error: 'حجم الملف يتجاوز 10MB' }))
+    if (file.size > 15 * 1024 * 1024) {
+      setter(prev => ({ ...prev, error: 'حجم الملف يتجاوز 15MB' }))
       return
     }
 
-    setter({ file, path: null, uploading: true, error: null })
+    // Compress image client-side to stay under Vercel's 4.5MB payload limit
+    let fileToUpload = file
+    if (file.type.startsWith('image/') && file.size > 3.5 * 1024 * 1024) {
+      setter({ file, path: null, uploading: false, compressing: true, error: null })
+      try {
+        fileToUpload = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.82,
+          maxSizeBytes: 3.5 * 1024 * 1024,
+        })
+      } catch {
+        setter({ file: null, path: null, uploading: false, compressing: false, error: 'فشل ضغط الصورة. جرّب صورة أصغر.' })
+        return
+      }
+    }
 
-    const fd = new FormData()
-    fd.append('document', file)
-    const result = await uploadKycDocumentAction(fd, documentType)
+    setter({ file: fileToUpload, path: null, uploading: true, compressing: false, error: null })
 
-    if (result.success) {
-      setter({ file, path: result.path, uploading: false, error: null })
-    } else {
-      setter({ file: null, path: null, uploading: false, error: result.error })
+    try {
+      const fd = new FormData()
+      fd.append('document', fileToUpload)
+      const result = await uploadKycDocumentAction(fd, documentType)
+
+      if (result.success) {
+        setter({ file: fileToUpload, path: result.path, uploading: false, compressing: false, error: null })
+      } else {
+        setter({ file: null, path: null, uploading: false, compressing: false, error: result.error })
+      }
+    } catch {
+      setter({
+        file: null, path: null, uploading: false, compressing: false,
+        error: 'فشل رفع الملف — تحقق من اتصالك بالإنترنت وحاول مرة أخرى.'
+      })
     }
   }
 
@@ -335,7 +361,7 @@ export default function KycSubmissionPage() {
                 slot={front}
                 inputRef={frontRef}
                 onFileChange={(file) => handleFileUpload(file, 'front', setFront)}
-                onClear={() => setFront({ file: null, path: null, uploading: false, error: null })}
+                onClear={() => setFront({ file: null, path: null, uploading: false, compressing: false, error: null })}
               />
 
               {/* Back — Optional */}
@@ -345,7 +371,7 @@ export default function KycSubmissionPage() {
                 slot={back}
                 inputRef={backRef}
                 onFileChange={(file) => handleFileUpload(file, 'back', setBack)}
-                onClear={() => setBack({ file: null, path: null, uploading: false, error: null })}
+                onClear={() => setBack({ file: null, path: null, uploading: false, compressing: false, error: null })}
               />
 
               {/* Selfie — Optional */}
@@ -355,12 +381,12 @@ export default function KycSubmissionPage() {
                 slot={selfie}
                 inputRef={selfieRef}
                 onFileChange={(file) => handleFileUpload(file, 'selfie', setSelfie)}
-                onClear={() => setSelfie({ file: null, path: null, uploading: false, error: null })}
+                onClear={() => setSelfie({ file: null, path: null, uploading: false, compressing: false, error: null })}
               />
             </div>
 
             <p className="text-xs text-gray-400 mt-4">
-              JPG, PNG, WebP, PDF — حتى 10MB لكل ملف. الوجه الأمامي إلزامي.
+              JPG, PNG, WebP, PDF — يتم ضغط الصور الكبيرة تلقائياً. الوجه الأمامي إلزامي.
             </p>
           </div>
 
@@ -394,7 +420,7 @@ export default function KycSubmissionPage() {
 
           <p className="text-center text-xs text-gray-400">
             بإرسال الطلب توافق على{' '}
-            <Link href="#" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
+            <Link href="/privacy" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
             {' '}وأن جميع البيانات المقدمة صحيحة ودقيقة.
           </p>
 
@@ -441,7 +467,12 @@ function UploadZone({
             : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer'
         }`}
       >
-        {slot.uploading ? (
+        {slot.compressing ? (
+          <>
+            <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+            <p className="text-xs text-amber-600 font-medium">جارٍ ضغط الصورة...</p>
+          </>
+        ) : slot.uploading ? (
           <>
             <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2"></div>
             <p className="text-xs text-gray-500">جارٍ الرفع...</p>
