@@ -54,9 +54,10 @@ export default async function ProfilePage({ params }: PageProps) {
         start_date,
         created_at,
         updated_at,
-        client:profiles!client_id(username, full_name)
+        client:profiles!client_id(username, full_name),
+        freelancer:profiles!freelancer_id(username, full_name)
       `)
-      .eq('freelancer_id', profile.id)
+      .or(`client_id.eq.${profile.id},freelancer_id.eq.${profile.id}`)
       .eq('status', 'completed')
       .order('updated_at', { ascending: false })
       .limit(10)
@@ -96,6 +97,7 @@ export default async function ProfilePage({ params }: PageProps) {
       created_at: c.created_at as string,
       updated_at: c.updated_at as string,
       client: Array.isArray(c.client) ? c.client[0] : c.client,
+      freelancer: Array.isArray(c.freelancer) ? c.freelancer[0] : c.freelancer,
     }))
 
     // Format reviews to normalize the reviewer relation

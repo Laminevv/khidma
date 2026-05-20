@@ -44,6 +44,7 @@ interface CompletedContract {
   created_at: string
   updated_at: string
   client: { username: string; full_name: string } | null
+  freelancer: { username: string; full_name: string } | null
 }
 
 interface Review {
@@ -350,11 +351,15 @@ export default function ClientProfilePage({ profile, completedContracts, reviews
                         <h3 className="font-medium text-gray-900 text-sm group-hover:text-emerald-600 transition-colors truncate">
                           {contract.title}
                         </h3>
-                        {contract.client && (
+                        {contract.client && contract.client.username !== profile.username ? (
                           <p className="text-xs text-gray-500 mt-1">
                             لصالح: {contract.client.full_name || contract.client.username}
                           </p>
-                        )}
+                        ) : contract.freelancer && contract.freelancer.username !== profile.username ? (
+                          <p className="text-xs text-gray-500 mt-1">
+                            المستقل: {contract.freelancer.full_name || contract.freelancer.username}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="text-sm font-semibold text-emerald-600 mr-4 flex-shrink-0">
                         {contract.total_amount?.toLocaleString()} دج
