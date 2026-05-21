@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendEmail, getUserEmail, getAdminEmails, generateEmailHtml } from '@/lib/email'
 
 // Helper: create notification via SECURITY DEFINER RPC
 async function notifyUser(supabase: Awaited<ReturnType<typeof createClient>>, targetUserId: string, senderId: string, type: string, title: string, body?: string, link?: string) {
@@ -177,6 +178,31 @@ export async function approveAndReleaseAction(contractId: string, milestoneId: s
         `العقد "${contract.title}" اكتمل. يمكنك تقييم التجربة.`,
         `/contracts/${contractId}`
       )
+
+      // Try to email the freelancer about completed contract and released funds
+      try {
+        const freelancerEmail = await getUserEmail(contract.freelancer_id)
+        if (freelancerEmail) {
+          await sendEmail({
+            to: freelancerEmail,
+            subject: '🎉 تم إكمال العقد بنجاح وتحرير مستحقاتك - خدمة.dz',
+            text: `تم إكمال العقد "${contract.title}" بنجاح وتم تحرير كامل مستحقات الضمان المالي لحسابك.`,
+            html: generateEmailHtml({
+              title: '🏆 تم إكمال العقد وتحرير المستحقات بنجاح!',
+              bodyText: `نعلمك بأنه قد تم إكمال العقد "${contract.title}" بشكل كامل وموافقة العميل. تم تحرير مستحقات الضمان المالي بالكامل وإيداعها في رصيدك القابل للسحب.`,
+              buttonLabel: 'استعراض رصيدك ومحفظتك',
+              buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/wallet`,
+              cardItems: [
+                { label: 'العقد', value: contract.title },
+                { label: 'حالة العقد', value: 'مكتمل بنجاح' },
+                { label: 'المستحقات', value: 'تم تحريرها بالكامل' }
+              ]
+            })
+          })
+        }
+      } catch (emailErr) {
+        console.error('Non-blocking contract completion email failed:', emailErr)
+      }
     }
 
     return { success: true }
@@ -294,7 +320,7 @@ export async function raiseDisputeAction(contractId: string, reason: string) {
     // 1. Verify contract ownership
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('id, status, client_id, freelancer_id')
+      .select('id, status, client_id, freelancer_id, title')
       .eq('id', contractId)
       .single()
 
@@ -328,6 +354,77 @@ export async function raiseDisputeAction(contractId: string, reason: string) {
     if (updateError) {
       console.error('Contract update error:', updateError)
       return { success: false, error: 'Dispute created but failed to update contract status.' }
+    }
+
+    // Try to trigger emails in the background (non-blocking)
+    try {
+      const clientEmail = await getUserEmail(contract.client_id)
+      const freelancerEmail = await getUserEmail(contract.freelancer_id)
+      const adminEmails = await getAdminEmails()
+
+      const contractTitle = contract.title || `عقد #${contractId}`
+
+      // Notify Client
+      if (clientEmail) {
+        await sendEmail({
+          to: clientEmail,
+          subject: '⚠️ تم فتح نزاع بخصوص عقدك - خدمة.dz',
+          text: `نعلمك بأنه قد تم فتح نزاع بخصوص العقد "${contractTitle}". تم تجميد مستحقات الضمان مؤقتاً لحين مراجعة الإدارة.`,
+          html: generateEmailHtml({
+            title: '⚠️ تم فتح نزاع جديد بخصوص عقدك',
+            bodyText: `نعلمك بأنه قد تم فتح نزاع بخصوص العقد "${contractTitle}". تم تجميد مستحقات الضمان مؤقتاً لحين مراجعة الإدارة وتدقيق النزاع.`,
+            buttonLabel: 'عرض تفاصيل العقد والنزاع',
+            buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/contracts/${contractId}`,
+            cardItems: [
+              { label: 'العقد', value: contractTitle },
+              { label: 'سبب النزاع', value: reason.trim() },
+              { label: 'حالة العقد', value: 'متنازع عليه (مجمّد)' }
+            ]
+          })
+        })
+      }
+
+      // Notify Freelancer
+      if (freelancerEmail) {
+        await sendEmail({
+          to: freelancerEmail,
+          subject: '⚠️ تم فتح نزاع بخصوص عقدك - خدمة.dz',
+          text: `نعلمك بأنه قد تم فتح نزاع بخصوص العقد "${contractTitle}". تم تجميد مستحقات الضمان مؤقتاً لحين مراجعة الإدارة.`,
+          html: generateEmailHtml({
+            title: '⚠️ تم فتح نزاع جديد بخصوص عقدك',
+            bodyText: `نعلمك بأنه قد تم فتح نزاع بخصوص العقد "${contractTitle}". تم تجميد مستحقات الضمان مؤقتاً لحين مراجعة الإدارة وتدقيق النزاع.`,
+            buttonLabel: 'عرض تفاصيل العقد والنزاع',
+            buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/contracts/${contractId}`,
+            cardItems: [
+              { label: 'العقد', value: contractTitle },
+              { label: 'سبب النزاع', value: reason.trim() },
+              { label: 'حالة العقد', value: 'متنازع عليه (مجمّد)' }
+            ]
+          })
+        })
+      }
+
+      // Notify Admins
+      if (adminEmails.length > 0) {
+        await sendEmail({
+          to: adminEmails,
+          subject: '⚖️ نزاع جديد يتطلب التدخل الإداري - خدمة.dz',
+          text: `تم فتح نزاع جديد بخصوص العقد "${contractTitle}". السبب: ${reason.trim()}`,
+          html: generateEmailHtml({
+            title: '⚖️ نزاع جديد يتطلب تدخلاً إدارياً',
+            bodyText: `قام أحد أطراف العقد بفتح نزاع بخصوص العقد "${contractTitle}". يرجى مراجعة تفاصيل النزاع في لوحة الإدارة وتوزيع الأموال وفقاً للأدلة.`,
+            buttonLabel: 'الانتقال إلى لوحة إدارة النزاعات',
+            buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/admin`,
+            cardItems: [
+              { label: 'العقد', value: contractTitle },
+              { label: 'سبب النزاع', value: reason.trim() },
+              { label: 'معرّف العقد', value: contractId }
+            ]
+          })
+        })
+      }
+    } catch (emailErr) {
+      console.error('Non-blocking dispute email failed:', emailErr)
     }
 
     revalidatePath(`/contracts/${contractId}`)

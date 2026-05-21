@@ -3,6 +3,7 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendEmail, getUserEmail, generateEmailHtml } from '@/lib/email'
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -429,6 +430,30 @@ export async function approveKycAction(
         p_body: 'أصبح حسابك موثقاً رسمياً. يمكنك الآن الاستفادة من جميع الميزات.',
         p_link: '/kyc/status',
       })
+
+      // Send transactional email notification
+      try {
+        const userEmail = await getUserEmail(submission.user_id)
+        if (userEmail) {
+          await sendEmail({
+            to: userEmail,
+            subject: '✅ تم توثيق حسابك بنجاح - خدمة.dz',
+            text: 'نهانينا! تم التحقق من هويتك وتوثيق حسابك رسمياً على منصة خدمة.dz.',
+            html: generateEmailHtml({
+              title: '🎉 حسابك موثق ومؤكد الآن!',
+              bodyText: 'نهانينا! تم مراجعة وثائق الهوية الخاصة بك من قبل الإدارة والموافقة عليها. أصبح حسابك الآن موثقاً رسمياً بشارة التحقق، مما يزيد من موثوقيتك أمام العملاء ويمكّنك من استخدام كامل ميزات المنصة.',
+              buttonLabel: 'الانتقال إلى الملف الشخصي',
+              buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/profile`,
+              cardItems: [
+                { label: 'حالة الحساب', value: 'موثق ومعتمد ✅' },
+                { label: 'تاريخ التوثيق', value: new Date().toLocaleDateString('ar-DZ') }
+              ]
+            })
+          })
+        }
+      } catch (emailErr) {
+        console.error('Non-blocking KYC approval email failed:', emailErr)
+      }
     }
 
     revalidatePath('/admin/kyc')
@@ -489,6 +514,30 @@ export async function rejectKycAction(
         p_body: `السبب: ${reason.trim()} — يمكنك إعادة التقديم بعد تصحيح المشكلة.`,
         p_link: '/kyc/status',
       })
+
+      // Send transactional email notification
+      try {
+        const userEmail = await getUserEmail(submission.user_id)
+        if (userEmail) {
+          await sendEmail({
+            to: userEmail,
+            subject: '❌ تحديث بخصوص طلب توثيق حسابك - خدمة.dz',
+            text: `تم رفض طلب التحقق من الهوية الخاص بك. السبب: ${reason.trim()}`,
+            html: generateEmailHtml({
+              title: '⚠️ لم يتم قبول طلب التحقق من الهوية',
+              bodyText: 'نعلمك بأنه قد تم مراجعة وثائق الهوية المقدمة من طرفك، وللأسف لم نتمكن من قبول الطلب للأسباب الموضحة أدناه. يرجى تصحيح المشكلة وإعادة تقديم الطلب مجدداً.',
+              buttonLabel: 'إعادة تقديم طلب التحقق',
+              buttonUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://khidma-five.vercel.app'}/kyc`,
+              cardItems: [
+                { label: 'سبب الرفض', value: reason.trim() },
+                { label: 'الإجراء المطلوب', value: 'يرجى مراجعة جودة الصور أو البيانات المقدمة والمحاولة مرة أخرى.' }
+              ]
+            })
+          })
+        }
+      } catch (emailErr) {
+        console.error('Non-blocking KYC rejection email failed:', emailErr)
+      }
     }
 
     revalidatePath('/admin/kyc')
