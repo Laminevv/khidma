@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import imageCompression from 'browser-image-compression'
 
 interface FileUploadProps {
   bucketName: string
@@ -20,7 +21,7 @@ export default function FileUpload({
   onUploadComplete,
   maxFiles = 5,
   maxSizeMB = 10,
-  accept = "*",
+  accept = "image/jpeg, image/png, image/webp",
   existingFiles = [],
   variant = 'default'
 }: FileUploadProps) {
@@ -52,13 +53,34 @@ export default function FileUpload({
     const newUrls: string[] = []
     
     for (const file of selectedFiles) {
-      const fileExt = file.name.split('.').pop()
+      let fileToUpload = file
+
+      if (file.type.startsWith('image/')) {
+        try {
+          fileToUpload = await imageCompression(file, {
+            maxSizeMB: Math.min(maxSizeMB, 4.5),
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          })
+        } catch (err) {
+          console.error('Image compression error:', err)
+          setError('حدث خطأ أثناء ضغط الصورة')
+          setUploading(false)
+          return
+        }
+      }
+
+      const originalExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const fileExt = fileToUpload.type === 'image/jpeg' ? 'jpg' 
+                    : fileToUpload.type === 'image/png' ? 'png' 
+                    : fileToUpload.type === 'image/webp' ? 'webp' 
+                    : originalExt
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
       const filePath = `${folderPath}/${fileName}`
 
       const { error: uploadError, data } = await supabase.storage
         .from(bucketName)
-        .upload(filePath, file)
+        .upload(filePath, fileToUpload)
 
       if (uploadError) {
         setError('حدث خطأ أثناء رفع بعض الملفات')
