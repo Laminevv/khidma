@@ -245,7 +245,7 @@ export default function AdminPage() {
             {/* Quick actions */}
             <div className="bg-gray-900 rounded-2xl p-6">
               <h2 className="font-semibold text-white mb-4">إجراءات سريعة</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
                 <button onClick={() => setTab('users')}
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right">
                   👥 إدارة المستخدمين
@@ -258,6 +258,10 @@ export default function AdminPage() {
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right">
                   ⚖️ فض النزاعات
                 </button>
+                <Link href="/admin/payments"
+                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right block">
+                  💳 الإدارة المالية
+                </Link>
                 <Link href="/admin/withdrawals"
                   className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl text-sm transition-all text-right block">
                   💸 طلبات السحب
