@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [activeContracts, setActiveContracts] = useState(0)
 
   const handleWithdraw = async () => {
     if (!profile || profile.withdrawable_balance < 10000) return
@@ -85,10 +86,42 @@ export default function DashboardPage() {
         .from('profiles').select('*').eq('id', user.id).single()
       setProfile(profileData)
 
-      const { data: jobsData } = await supabase
-        .from('jobs').select('*').eq('client_id', user.id)
-        .order('created_at', { ascending: false })
-      setJobs(jobsData || [])
+      const isClientRole = profileData?.role === 'client' || profileData?.role === 'both'
+
+      if (isClientRole) {
+        const { data: jobsData } = await supabase
+          .from('jobs').select('*').eq('client_id', user.id)
+          .order('created_at', { ascending: false })
+        setJobs(jobsData || [])
+      } else {
+        const { data: proposals } = await supabase
+          .from('proposals').select('*, jobs(id, title, category, budget_max, status)')
+          .eq('freelancer_id', user.id)
+          .order('created_at', { ascending: false })
+        
+        const mappedJobs = (proposals || []).map(p => {
+          const job = Array.isArray(p.jobs) ? p.jobs[0] : p.jobs
+          return {
+            id: job?.id || p.job_id,
+            title: job?.title || 'مشروع محذوف',
+            category: job?.category || 'غير محدد',
+            budget_max: job?.budget_max || 0,
+            status: p.status, // Show proposal status
+            proposals_count: 0,
+            created_at: p.created_at
+          }
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setJobs(mappedJobs as any)
+      }
+
+      const { count } = await supabase
+        .from('contracts')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .or(`client_id.eq.${user.id},freelancer_id.eq.${user.id}`)
+      
+      setActiveContracts(count || 0)
 
       setLoading(false)
     }
@@ -112,12 +145,16 @@ export default function DashboardPage() {
 
   const statusLabel: Record<string, string> = {
     open: 'مفتوح', in_progress: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغي',
+    pending: 'قيد المراجعة', accepted: 'مقبول', rejected: 'مرفوض'
   }
   const statusColor: Record<string, string> = {
     open: 'bg-emerald-50 text-emerald-700',
     in_progress: 'bg-yellow-50 text-yellow-700',
     completed: 'bg-gray-100 text-gray-600',
     cancelled: 'bg-red-50 text-red-600',
+    pending: 'bg-blue-50 text-blue-600',
+    accepted: 'bg-emerald-50 text-emerald-700',
+    rejected: 'bg-gray-100 text-gray-600'
   }
 
   return (
@@ -213,7 +250,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {[
             { label: isClient ? 'مشاريعي' : 'عروضي', value: jobs.length.toString(), icon: '📋', color: 'bg-blue-50 text-blue-600' },
-            { label: 'العقود النشطة', value: '0', icon: '📝', color: 'bg-emerald-50 text-emerald-600' },
+            { label: 'العقود النشطة', value: activeContracts.toString(), icon: '📝', color: 'bg-emerald-50 text-emerald-600' },
             { label: 'الرصيد الكلي', value: `${((profile?.deposit_balance || 0) + (profile?.withdrawable_balance || 0)).toLocaleString()} دج`, icon: '💰', color: 'bg-yellow-50 text-yellow-600' },
             { label: 'التقييم', value: profile?.rating ? `${profile.rating} ⭐` : '—', icon: '⭐', color: 'bg-purple-50 text-purple-600' },
           ].map((s) => (

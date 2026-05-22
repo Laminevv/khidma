@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import FileUpload from '@/app/components/FileUpload'
+import { sendNotificationAction } from '@/app/actions/notifications'
 
 interface Message {
   id: string
@@ -188,6 +189,15 @@ function MessagesContent() {
       content: newMessage.trim(),
       attachments: attachments.length > 0 ? attachments : null,
     }).select().single()
+
+    // Send real-time notification to receiver
+    await sendNotificationAction(
+      activeConv.other_user_id,
+      'message',
+      'رسالة جديدة 💬',
+      `لديك رسالة جديدة بانتظارك.`,
+      `/messages?user=${currentUser.id}`
+    )
 
     setConversations(prev => prev.map(c =>
       c.other_user_id === activeConv.other_user_id

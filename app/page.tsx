@@ -1,71 +1,68 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
+import { Metadata } from 'next'
 
-export default function Home() {
-  const router = useRouter()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [latestJobs, setLatestJobs] = useState<any[]>([])
+export const metadata: Metadata = {
+  title: 'خدمة.dz | أكبر منصة للعمل الحر في الجزائر',
+  description: 'وظّف أفضل المستقلين الجزائريين أو ابدأ عملك الحر. منصة خدمة.dz توفر نظام ضمان مالي متكامل لحماية حقوق الطرفين بأسعار تنافسية وطرق دفع محلية.',
+  keywords: 'عمل حر، مستقلين، الجزائر، برمجة، تصميم، كتابة، تسويق، منصة عمل حر جزائرية، بريدي موب، خدمة.dz',
+}
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: authData } = await supabase.auth.getUser()
-      setUser(authData.user)
-
-      const { data: jobs } = await supabase
-        .from('jobs')
-        .select(`
-          id,
-          title,
-          category,
-          budget_min,
-          budget_max,
-          created_at,
-          profiles:client_id(full_name, username)
-        `)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(6)
-      
-      if (jobs) {
-        setLatestJobs(jobs)
-      }
-      setLoading(false)
-    }
-
-    init()
-  }, [])
-
-  function timeAgo(date: string) {
-    const diff = Date.now() - new Date(date).getTime()
-    const days = Math.floor(diff / 86400000)
-    if (days === 0) {
-      const hours = Math.floor(diff / 3600000)
-      if (hours === 0) return 'منذ لحظات'
-      return `منذ ${hours} ساعة`
-    }
-    if (days === 1) return 'أمس'
-    return `منذ ${days} يوم`
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) {
+    const hours = Math.floor(diff / 3600000)
+    if (hours === 0) return 'منذ لحظات'
+    return `منذ ${hours} ساعة`
   }
+  if (days === 1) return 'أمس'
+  return `منذ ${days} يوم`
+}
 
-  const categories = [
-    { name: 'برمجة وتطوير', icon: '💻', count: '120+' },
-    { name: 'تصميم جرافيك', icon: '🎨', count: '85+' },
-    { name: 'ترجمة وكتابة', icon: '✍️', count: '45+' },
-    { name: 'مونتاج وفيديو', icon: '🎬', count: '30+' },
-    { name: 'تسويق رقمي', icon: '📱', count: '55+' },
-    { name: 'استشارات', icon: '💡', count: '20+' },
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Fetch latest open jobs
+  const { data: latestJobs } = await supabase
+    .from('jobs')
+    .select(`
+      id,
+      title,
+      category,
+      budget_min,
+      budget_max,
+      created_at,
+      profiles:client_id(full_name, username)
+    `)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(6)
+
+  // Fetch accurate category counts
+  const categoryTemplates = [
+    { name: 'برمجة وتطوير', icon: '💻' },
+    { name: 'تصميم جرافيك', icon: '🎨' },
+    { name: 'ترجمة وكتابة', icon: '✍️' },
+    { name: 'مونتاج وفيديو', icon: '🎬' },
+    { name: 'تسويق رقمي', icon: '📱' },
+    { name: 'استشارات', icon: '💡' },
   ]
+
+  const categoryPromises = categoryTemplates.map(async (cat) => {
+    const { count } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('category', cat.name)
+      .eq('status', 'open')
+    return { ...cat, count: count || 0 }
+  })
+
+  const categories = await Promise.all(categoryPromises)
 
   return (
     <main className="min-h-screen bg-white" dir="rtl">
-
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -84,23 +81,21 @@ export default function Home() {
             <Link href="/jobs" className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors hidden sm:block">
               تصفح المشاريع
             </Link>
-            {!loading && (
-              user ? (
-                <Link href="/dashboard"
-                  className="text-sm bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20">
-                  لوحة التحكم
+            {user ? (
+              <Link href="/dashboard"
+                className="text-sm bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20">
+                لوحة التحكم
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                  دخول
                 </Link>
-              ) : (
-                <>
-                  <Link href="/auth/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                    دخول
-                  </Link>
-                  <Link href="/auth/register"
-                    className="text-sm bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20">
-                    حساب جديد
-                  </Link>
-                </>
-              )
+                <Link href="/auth/register"
+                  className="text-sm bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-sm shadow-emerald-500/20">
+                  حساب جديد
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -108,7 +103,6 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-        {/* Background Accents */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-50 rounded-full blur-[100px] -z-10 translate-x-1/3 -translate-y-1/4" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/50 rounded-full blur-[80px] -z-10 -translate-x-1/3 translate-y-1/3" />
 
@@ -199,7 +193,7 @@ export default function Home() {
               <Link key={cat.name} href={`/jobs?category=${cat.name}`} className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-emerald-300 hover:shadow-md transition-all text-center group">
                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{cat.icon}</div>
                 <h3 className="font-bold text-gray-900 text-sm mb-1">{cat.name}</h3>
-                <p className="text-xs text-gray-400">{cat.count} مشروع</p>
+                <p className="text-xs text-gray-400">{cat.count} مشروع مفتوح</p>
               </Link>
             ))}
           </div>
@@ -214,13 +208,9 @@ export default function Home() {
             <p className="text-gray-500">فرص عمل جديدة تضاف يومياً</p>
           </div>
 
-          {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : latestJobs.length > 0 ? (
+          {latestJobs && latestJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {latestJobs.map((job) => (
+              {latestJobs.map((job: any) => (
                 <Link key={job.id} href={`/jobs/${job.id}`} className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-emerald-300 hover:shadow-lg transition-all flex flex-col h-full group">
                   <div className="flex justify-between items-start mb-4">
                     <span className="bg-gray-50 text-gray-600 text-xs font-medium px-3 py-1 rounded-lg border border-gray-200">

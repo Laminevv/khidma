@@ -290,80 +290,43 @@ khidma/
 
 ### NEW BUGS & ISSUES FOUND
 
-#### NEW-01 — Auth Callback Open Redirect ~~Still Present~~ ✅ FIXED
+#### NEW-01 — Auth Callback Open Redirect ✅ FIXED
 - **File**: `app/auth/callback/route.ts`, line 8-10
 - **Status**: ✅ FIXED (May 22, 2026)
 - **Fix Applied**: Validates that `next` starts with `/` and does NOT start with `//` (protocol-relative URL). Falls back to `/dashboard` otherwise.
 
-#### NEW-02 — Landing Page is a Client Component (SEO Impact — MEDIUM)
-- **File**: `app/page.tsx`, line 1
-- **Problem**: The landing page is `'use client'` and fetches jobs in `useEffect`. This means:
-  1. **Zero SSR content** — search engines see a blank page with a spinner
-  2. No benefit from the root layout's rich `generateMetadata`
-  3. Latest jobs section flashes as empty before loading
-- **Impact**: Critical for SEO since this is the public-facing homepage
-- **Fix**: Convert to a Server Component that fetches latest jobs server-side, passing data to a thin client component for interactive elements (auth state check).
+#### NEW-02 — ~~Landing Page is a Client Component~~ ✅ FIXED
+- **File**: `app/page.tsx`
+- **Status**: ✅ FIXED (May 22, 2026)
+- **Fix Applied**: Converted to Server Component, added static `metadata` export for SEO, and refactored state management to fetch data directly via server queries.
 
-#### NEW-03 — Dashboard "Active Contracts" Count is Hardcoded to 0 (UI BUG — LOW)
-- **File**: `app/dashboard/page.tsx`, line 216
-- **Problem**: The "العقود النشطة" stat card always shows `0` — it's a hardcoded string, not computed from actual data.
-- **Fix**: Fetch active contracts count from Supabase:
-```typescript
-const { count: activeContracts } = await supabase
-  .from('contracts')
-  .select('id', { count: 'exact', head: true })
-  .or(`client_id.eq.${user.id},freelancer_id.eq.${user.id}`)
-  .eq('status', 'active')
-```
+#### NEW-03 — ~~Dashboard Active Contracts Count Hardcoded to 0~~ ✅ FIXED
+- **File**: `app/dashboard/page.tsx`
+- **Status**: ✅ FIXED (May 22, 2026)
+- **Fix Applied**: Queries `contracts` table for active contracts where user is either client or freelancer.
 
-#### NEW-04 — Dashboard Only Shows Client's Jobs, Not Freelancer's Proposals (UX — LOW-MEDIUM)
-- **File**: `app/dashboard/page.tsx`, line 88-90
-- **Problem**: The dashboard fetches jobs where `client_id = user.id`. For freelancers, this returns nothing because they don't own jobs — they submit proposals. Freelancers see an empty "عروضي الأخيرة" section with no actual data.
-- **Fix**: For freelancers, fetch their recent proposals with joined job data:
-```typescript
-if (!isClient) {
-  const { data: proposals } = await supabase
-    .from('proposals').select('*, jobs(id, title, category, budget_max)')
-    .eq('freelancer_id', user.id)
-    .order('created_at', { ascending: false })
-}
-```
+#### NEW-04 — ~~Dashboard Shows Client Jobs, Not Freelancer Proposals~~ ✅ FIXED
+- **File**: `app/dashboard/page.tsx`
+- **Status**: ✅ FIXED (May 22, 2026)
+- **Fix Applied**: If the user is a freelancer, it now queries the `proposals` table (joining `jobs`) and maps it correctly so freelancers see their submitted bids and statuses instead of an empty list.
 
-#### NEW-05 — Category Counts on Landing Page Are Fake (UX — LOW)
-- **File**: `app/page.tsx`, lines 57-64
-- **Problem**: Category cards show hardcoded counts (`'120+'`, `'85+'`, etc.) that don't reflect real data. This is misleading for an MVP launch.
-- **Fix**: Either remove the counts, or fetch real counts from Supabase:
-```typescript
-const { count } = await supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('category', cat.name).eq('status', 'open')
-```
+#### NEW-05 — ~~Fake Category Counts on Landing Page~~ ✅ FIXED
+- **File**: `app/page.tsx`
+- **Status**: ✅ FIXED (May 22, 2026)
+- **Fix Applied**: Dynamically queries the `jobs` table to show accurate counts of 'open' jobs per category.
 
-#### NEW-06 — Messages Page Does NOT Send Notifications to the Receiver (MEDIUM)
-- **File**: `app/messages/page.tsx`, `sendMessage()` function (line 178-202)
-- **Problem**: When a user sends a chat message, no in-app notification is created for the receiver. Unlike proposals, escrow events, and reviews which all trigger `notifyUser()`, direct messages are completely silent. The receiver only sees the message if they are currently on the messages page with that conversation open.
-- **Fix**: After inserting the message, call `sendNotificationAction` or an RPC to notify the receiver of a new message.
-
-#### NEW-07 — ~~Debug API Routes Exist in Production Code~~ ✅ FIXED
-- **File**: `app/api/debug/` directory — **DELETED** (May 22, 2026)
-- **Status**: ✅ FIXED — Entire directory removed from codebase.
+#### NEW-06 — ~~Chat Messages Don't Trigger Notifications~~ ✅ FIXED
+- **File**: `app/messages/page.tsx`
+- **Status**: ✅ FIXED (May 22, 2026)
+- **Fix Applied**: `sendMessage` now correctly calls `sendNotificationAction` after inserting a message, triggering an in-app notification for the receiver.
 
 #### NEW-08 — `sendNotificationAction` Still Has User Session Dependency (EDGE CASE — LOW)
 - **File**: `app/actions/notifications.ts`, lines 88-90
 - **Problem**: `sendNotificationAction` requires an authenticated user session. This was partially fixed (BUG-08) in `admin.ts` by using service-role RPC directly. However, the `sendNotificationAction` function itself still has the limitation — any future caller that doesn't have a user session will fail silently.
-- **Note**: All current admin callers correctly bypass this by using service-role RPC directly. This is a design smell, not a critical bug.
-
-#### NEW-09 — ~~Footer Links to "#" Placeholder Pages~~ ✅ FIXED
-- **File**: `app/page.tsx`, lines 319, 327-328, 338
-- **Status**: ✅ FIXED (May 22, 2026) — All 4 dead links now point to relevant existing pages (`/terms`, `/jobs`, `/privacy`).
-
-#### NEW-10 — ~~Registration Links Terms/Privacy to "#"~~ ✅ FIXED
-- **File**: `app/auth/register/page.tsx`, lines 206-208
-- **Status**: ✅ FIXED (May 22, 2026) — Links now point to `/terms` and `/privacy`.
-- **Bonus**: All 4 dead `href="#"` links in `app/page.tsx` footer were also fixed.
 
 #### NEW-11 — No Rate Limiting on Login Attempts (SECURITY — MEDIUM)
 - **File**: `app/actions/auth.ts`
-- **Problem**: The `loginAction` has no rate limiting. An attacker can brute-force passwords with no throttling. Supabase has some built-in rate limiting at the auth level, but it's relatively permissive.
-- **Fix**: Add IP-based or user-based rate limiting, or at minimum, add exponential backoff on the client side after failed attempts.
+- **Problem**: The `loginAction` has no rate limiting. An attacker can brute-force passwords with no throttling.
 
 #### NEW-12 — Chargily Still Using TEST Environment (REMINDER)
 - **File**: `app/wallet/deposit/actions.ts`, line 265
@@ -372,8 +335,7 @@ const { count } = await supabase.from('jobs').select('id', { count: 'exact', hea
 
 #### NEW-13 — `.env.local` Contains Production Secrets (SECURITY — CRITICAL)
 - **File**: `.env.local`
-- **Problem**: The `.env.local` file contains live Supabase keys (including the SERVICE_ROLE_KEY) and the Resend API key. While `.env.local` is in `.gitignore`, if this file is ever committed or shared, it exposes full database admin access.
-- **Action**: After launch, rotate all keys. Ensure `.env.local` is NEVER committed to git.
+- **Problem**: The `.env.local` file contains live Supabase keys (including the SERVICE_ROLE_KEY) and the Resend API key.
 
 ---
 
@@ -400,21 +362,18 @@ const { count } = await supabase.from('jobs').select('id', { count: 'exact', hea
 
 | # | Issue | File(s) | Effort |
 |---|-------|---------|--------|
-| 1 | ~~Remove `/api/debug/` routes~~ | ~~`app/api/debug/`~~ | ✅ DONE |
-| 2 | Switch Chargily to production URL | `app/wallet/deposit/actions.ts` L265 | ⏸️ ON HOLD (legal paperwork) |
-| 3 | ~~Fix auth callback open redirect (BUG-09)~~ | ~~`app/auth/callback/route.ts`~~ | ✅ DONE |
-| 4 | ~~Fix registration Terms/Privacy links~~ | ~~`app/auth/register/page.tsx`~~ | ✅ DONE |
-| 5 | Rotate all secrets after launch | `.env.local` / Vercel env vars | 15 min |
+| 1 | Switch Chargily to production URL | `app/wallet/deposit/actions.ts` L265 | ⏸️ ON HOLD |
+| 2 | Rotate all secrets after launch | `.env.local` / Vercel env vars | 15 min |
 
 ### 🟠 HIGH (Should Fix Before Launch)
 
 | # | Issue | File(s) | Effort |
 |---|-------|---------|--------|
-| 6 | Convert landing page to Server Component (SEO) | `app/page.tsx` | 1-2 hrs |
-| 7 | Add login rate limiting | `app/actions/auth.ts` | 1 hr |
-| 8 | Add new message notifications to chat | `app/messages/page.tsx` | 30 min |
-| 9 | Fix hardcoded "Active Contracts = 0" on dashboard | `app/dashboard/page.tsx` L216 | 15 min |
-| 10 | Fix freelancer dashboard empty state (show proposals) | `app/dashboard/page.tsx` L88-90 | 1 hr |
+| 6 | ~~Landing page is client component~~ | ~~`app/page.tsx`~~ | ✅ DONE |
+| 7 | ~~Chat messages don't trigger notifications~~ | ~~`app/messages/page.tsx`~~ | ✅ DONE |
+| 8 | ~~Dashboard shows 0 active contracts~~ | ~~`app/dashboard/page.tsx`~~ | ✅ DONE |
+| 9 | ~~Dashboard shows empty proposals~~ | ~~`app/dashboard/page.tsx`~~ | ✅ DONE |
+| 10 | Add login rate limiting | `app/actions/auth.ts` | 1 hr |
 
 ### 🟡 MEDIUM (Fix Soon After Launch)
 
