@@ -203,9 +203,9 @@ function RegisterForm() {
 
             <p className="text-xs text-gray-400 text-center">
               بالتسجيل توافق على{' '}
-              <Link href="#" className="text-emerald-600 hover:underline">شروط الاستخدام</Link>
+              <Link href="/terms" className="text-emerald-600 hover:underline">شروط الاستخدام</Link>
               {' '}و{' '}
-              <Link href="#" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
+              <Link href="/privacy" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
             </p>
           </form>
         </div>

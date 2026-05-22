@@ -5,7 +5,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   // next is the redirect path after successful code exchange
-  const next = searchParams.get('next') ?? '/dashboard'
+  // Security: validate that `next` is a relative path to prevent open redirect attacks
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard'
 
   if (code) {
     const supabase = await createClient()

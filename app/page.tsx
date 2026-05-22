@@ -316,7 +316,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-gray-500">
                 <li><Link href="/jobs" className="hover:text-emerald-600 transition-colors">تصفح المشاريع</Link></li>
                 <li><Link href="/auth/register?role=freelancer" className="hover:text-emerald-600 transition-colors">إنشاء حساب</Link></li>
-                <li><Link href="#" className="hover:text-emerald-600 transition-colors">نظام الضمان</Link></li>
+                <li><Link href="/terms" className="hover:text-emerald-600 transition-colors">نظام الضمان</Link></li>
               </ul>
             </div>
 
@@ -324,8 +324,8 @@ export default function Home() {
               <h4 className="font-bold text-gray-900 mb-4">لأصحاب العمل</h4>
               <ul className="space-y-3 text-sm text-gray-500">
                 <li><Link href="/auth/register?role=client" className="hover:text-emerald-600 transition-colors">نشر مشروع</Link></li>
-                <li><Link href="#" className="hover:text-emerald-600 transition-colors">كيفية التوظيف</Link></li>
-                <li><Link href="#" className="hover:text-emerald-600 transition-colors">الدفع الآمن</Link></li>
+                <li><Link href="/jobs" className="hover:text-emerald-600 transition-colors">كيفية التوظيف</Link></li>
+                <li><Link href="/terms" className="hover:text-emerald-600 transition-colors">الدفع الآمن</Link></li>
               </ul>
             </div>
           </div>
@@ -335,7 +335,7 @@ export default function Home() {
             <div className="flex gap-6">
               <Link href="/terms" className="hover:text-emerald-600 transition-colors">شروط الاستخدام</Link>
               <Link href="/privacy" className="hover:text-emerald-600 transition-colors">سياسة الخصوصية</Link>
-              <Link href="#" className="hover:text-emerald-600 transition-colors">اتصل بنا</Link>
+              <Link href="/terms" className="hover:text-emerald-600 transition-colors">اتصل بنا</Link>
             </div>
           </div>
         </div>
