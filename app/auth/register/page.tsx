@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ArrowRight, AlertCircle, Loader2, CheckCircle2, Briefcase, Code } from 'lucide-react'
 
 type Role = 'client' | 'freelancer'
 
@@ -95,137 +96,322 @@ function RegisterForm() {
     router.push('/dashboard')
   }
 
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
-
+  // ─── Success State ───
   if (success) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4" dir="rtl">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
+      <div className="flex min-h-screen items-center justify-center" dir="rtl" style={{ background: 'var(--bg)' }}>
+        <div className="text-center max-w-md px-6">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'var(--accent-soft)' }}
+          >
+            <CheckCircle2 className="w-8 h-8" style={{ color: 'var(--accent)' }} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">تم إنشاء حسابك!</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            تحقق من بريدك الإلكتروني وانقر على رابط التفعيل
+          <h2
+            className="mb-3"
+            style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: 'var(--fg)' }}
+          >
+            تم إنشاء حسابك!
+          </h2>
+          <p className="mb-8 text-sm" style={{ color: 'var(--muted)' }}>
+            تحقق من بريدك الإلكتروني وانقر على رابط التفعيل لتأكيد حسابك.
           </p>
-          <Link href="/auth/login"
-            className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors inline-block">
+          <Link
+            href="/auth/login"
+            className="btn btn-primary"
+            style={{ padding: '14px 32px', fontSize: '16px' }}
+          >
             الذهاب لتسجيل الدخول
           </Link>
         </div>
-      </main>
+      </div>
     )
   }
 
+  // ─── Main Register Form ───
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12" dir="rtl">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white"/>
-              </svg>
-            </div>
-            <span className="text-xl font-bold text-gray-900">
-              خدمة<span className="text-emerald-500">.dz</span>
-            </span>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">إنشاء حساب جديد</h1>
-          <p className="text-gray-500 mt-1 text-sm">انضم لمنصة العمل الحر الجزائرية</p>
-        </div>
+    <div className="flex min-h-screen" dir="rtl">
+      {/* ─── Visual Panel ─── */}
+      <div
+        className="hidden lg:flex flex-1 flex-col justify-center relative overflow-hidden"
+        style={{
+          background: 'var(--fg)',
+          color: 'var(--surface)',
+          padding: '80px',
+        }}
+      >
+        {/* Radial teal glow */}
+        <div
+          className="absolute"
+          style={{
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)',
+            opacity: 0.1,
+          }}
+        />
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <button type="button" onClick={() => setRole('client')}
-              className={`p-4 rounded-xl border-2 text-center transition-all ${
-                role === 'client' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
-              }`}>
-              <div className="text-2xl mb-1">💼</div>
-              <div className={`text-sm font-medium ${role === 'client' ? 'text-emerald-700' : 'text-gray-700'}`}>صاحب عمل</div>
-              <div className="text-xs text-gray-400 mt-0.5">أبحث عن مستقلين</div>
+        <Link
+          href="/"
+          className="absolute top-10 right-10 flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-100"
+          style={{ color: 'white', opacity: 0.6 }}
+        >
+          <ArrowRight className="w-4 h-4" />
+          العودة للرئيسية
+        </Link>
+
+        <div className="relative z-10">
+          <h1
+            className="mb-6"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '48px',
+              lineHeight: 1.1,
+            }}
+          >
+            ابدأ رحلتك المهنية.
+          </h1>
+          <p
+            className="leading-relaxed"
+            style={{
+              fontSize: '18px',
+              color: 'var(--muted)',
+              maxWidth: '400px',
+              lineHeight: 1.7,
+            }}
+          >
+            انضم إلى أكثر منصة مصداقية للخدمات المهنية عالية الجودة في الجزائر.
+            حساب واحد، فرص بلا حدود.
+          </p>
+        </div>
+      </div>
+
+      {/* ─── Form Panel ─── */}
+      <div
+        className="w-full lg:w-[560px] flex flex-col justify-center overflow-y-auto"
+        style={{
+          background: 'var(--surface)',
+          padding: '60px 80px',
+        }}
+      >
+        <div className="w-full max-w-[400px] mx-auto">
+          {/* Logo */}
+          <div className="mb-10">
+            <Link
+              href="/"
+              className="inline-block text-[24px] font-extrabold"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--fg)', textDecoration: 'none' }}
+            >
+              خدمة<span style={{ color: 'var(--accent)' }}>.dz</span>
+            </Link>
+          </div>
+
+          <h2
+            className="mb-2"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '32px',
+              color: 'var(--fg)',
+            }}
+          >
+            أنشئ حسابك.
+          </h2>
+          <p className="mb-8" style={{ color: 'var(--muted)', fontSize: '15px' }}>
+            لديك حساب بالفعل؟{' '}
+            <Link
+              href="/auth/login"
+              className="font-semibold hover:underline"
+              style={{ color: 'var(--accent)' }}
+            >
+              تسجيل الدخول
+            </Link>
+          </p>
+
+          {/* ─── Role Toggle ─── */}
+          <div
+            className="grid grid-cols-2 gap-1 mb-8"
+            style={{
+              background: 'var(--bg)',
+              padding: '4px',
+              borderRadius: 'var(--radius)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setRole('client')}
+              className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-md transition-all"
+              style={{
+                background: role === 'client' ? 'var(--surface)' : 'transparent',
+                color: role === 'client' ? 'var(--fg)' : 'var(--muted)',
+                boxShadow: role === 'client' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <Briefcase className="w-4 h-4" />
+              صاحب عمل
             </button>
-            <button type="button" onClick={() => setRole('freelancer')}
-              className={`p-4 rounded-xl border-2 text-center transition-all ${
-                role === 'freelancer' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
-              }`}>
-              <div className="text-2xl mb-1">🧑‍💻</div>
-              <div className={`text-sm font-medium ${role === 'freelancer' ? 'text-emerald-700' : 'text-gray-700'}`}>مستقل</div>
-              <div className="text-xs text-gray-400 mt-0.5">أقدم خدماتي</div>
+            <button
+              type="button"
+              onClick={() => setRole('freelancer')}
+              className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-md transition-all"
+              style={{
+                background: role === 'freelancer' ? 'var(--surface)' : 'transparent',
+                color: role === 'freelancer' ? 'var(--fg)' : 'var(--muted)',
+                boxShadow: role === 'freelancer' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <Code className="w-4 h-4" />
+              مستقل
             </button>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister}>
+            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+              <div
+                className="flex items-center gap-2 mb-5 text-sm px-4 py-3 rounded-lg"
+                style={{
+                  background: 'color-mix(in oklch, var(--error) 10%, var(--surface))',
+                  color: 'var(--error)',
+                  border: '1px solid color-mix(in oklch, var(--error) 20%, transparent)',
+                }}
+              >
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">الاسم الكامل</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                placeholder="الاسم الكامل" required className={inputClass} style={{ color: '#111827' }} />
+            {/* Full Name */}
+            <div className="field">
+              <label>الاسم الكامل</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="الاسم الكامل"
+                required
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">اسم المستخدم</label>
-              <input type="text" value={username}
+            {/* Username */}
+            <div className="field">
+              <label>اسم المستخدم</label>
+              <input
+                type="text"
+                value={username}
                 onChange={(e) => setUsername(e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase())}
-                placeholder="username" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
-              <p className="text-xs text-gray-400 mt-1">حروف إنجليزية وأرقام فقط</p>
+                placeholder="username"
+                required
+                dir="ltr"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              />
+              <p className="text-xs" style={{ color: 'var(--muted)', marginTop: '-4px' }}>
+                حروف إنجليزية وأرقام فقط
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">البريد الإلكتروني</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@gmail.com" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
+            {/* Email */}
+            <div className="field">
+              <label>البريد الإلكتروني</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@gmail.com"
+                required
+                dir="ltr"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="8 أحرف، حرف كبير، صغير، رقم ورمز" required className={inputClass} dir="ltr" style={{ color: '#111827' }} />
+            {/* Password */}
+            <div className="field">
+              <label>كلمة المرور</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="8 أحرف، حرف كبير، صغير، رقم ورمز"
+                required
+                dir="ltr"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              />
             </div>
 
-            <button type="submit" disabled={loading}
-              className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2">
+            {/* Terms Agreement */}
+            <div className="flex items-center gap-2 mb-6" style={{ fontSize: '13px', color: 'var(--muted)' }}>
+              <input
+                type="checkbox"
+                id="terms-agree"
+                required
+                className="cursor-pointer"
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              <label htmlFor="terms-agree" className="cursor-pointer">
+                أوافق على{' '}
+                <Link href="/terms" className="font-semibold hover:underline" style={{ color: 'var(--fg)' }}>
+                  شروط الاستخدام
+                </Link>
+                {' '}و{' '}
+                <Link href="/privacy" className="font-semibold hover:underline" style={{ color: 'var(--fg)' }}>
+                  سياسة الخصوصية
+                </Link>
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                padding: '14px',
+                background: 'var(--fg)',
+                color: 'var(--surface)',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                fontWeight: 700,
+                fontSize: '16px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+              onMouseEnter={(e) => { if (!loading) (e.currentTarget.style.background = 'var(--accent)') }}
+              onMouseLeave={(e) => { (e.currentTarget.style.background = 'var(--fg)') }}
+            >
               {loading ? (
-                <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                </svg>
-              ) : null}
-              {loading ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب'}
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جارٍ إنشاء الحساب...
+                </>
+              ) : 'إنشاء الحساب'}
             </button>
-
-            <p className="text-xs text-gray-400 text-center">
-              بالتسجيل توافق على{' '}
-              <Link href="/terms" className="text-emerald-600 hover:underline">شروط الاستخدام</Link>
-              {' '}و{' '}
-              <Link href="/privacy" className="text-emerald-600 hover:underline">سياسة الخصوصية</Link>
-            </p>
           </form>
         </div>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          لديك حساب بالفعل؟{' '}
-          <Link href="/auth/login" className="text-emerald-600 font-medium hover:underline">
-            تسجيل الدخول
-          </Link>
-        </p>
       </div>
-    </main>
+
+      {/* ─── Responsive: Mobile adjustments ─── */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .flex.min-h-screen > div:last-of-type {
+            width: 100% !important;
+            padding: 40px 20px !important;
+          }
+        }
+      `}</style>
+    </div>
   )
 }
 
 export default function RegisterPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent)' }} />
       </div>
     }>
       <RegisterForm />
