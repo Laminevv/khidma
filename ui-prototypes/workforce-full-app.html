@@ -1,0 +1,207 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workforce · Full App Prototype</title>
+  <style>
+    :root {
+      --bg:      #f8fafc;
+      --surface: #ffffff;
+      --fg:      #0f172a;
+      --muted:   #64748b;
+      --border:  #e2e8f0;
+      --accent:  #0f766e;
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, serif; 
+      --font-body:    'Inter', -apple-system, system-ui, sans-serif; 
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      padding: 80px 24px;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    header { text-align: center; margin-bottom: 80px; }
+    header h1 { font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); margin: 0; }
+    header p { color: var(--muted); font-size: 18px; margin-top: 12px; }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 32px;
+    }
+
+    .screen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    .screen-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(15, 118, 110, 0.1);
+    }
+
+    .screen-preview {
+      height: 240px;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      padding-top: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .screen-preview iframe {
+      width: 1200px;
+      height: 800px;
+      transform: scale(0.25);
+      transform-origin: top center;
+      border: none;
+      pointer-events: none;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .screen-info { padding: 24px; }
+    .screen-info h3 { font-family: var(--font-display); font-size: 24px; margin: 0 0 8px; }
+    .screen-info p { color: var(--muted); font-size: 14px; margin: 0 0 20px; min-height: 42px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px;
+      background: var(--fg); color: var(--surface); transition: background 0.2s;
+    }
+    .screen-card:hover .btn { background: var(--accent); }
+
+    .tag {
+      position: absolute; top: 12px; left: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Workforce.</h1>
+      <p>A full web application prototype for the modern freelance marketplace.</p>
+    </header>
+
+    <div class="gallery-grid">
+      <!-- Landing -->
+      <a href="landing.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Public</span>
+          <iframe src="landing.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Landing Page</h3>
+          <p>High-conversion marketing site featuring hero, value props, and live stats.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Auth -->
+      <a href="auth.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Auth</span>
+          <iframe src="auth.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Onboarding</h3>
+          <p>Split-screen authentication flow for both Clients and Freelancers.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Marketplace -->
+      <a href="marketplace.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Product</span>
+          <iframe src="marketplace.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Job Marketplace</h3>
+          <p>The core search and discovery engine for freelancers with robust filtering.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Client Dash -->
+      <a href="client.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Dashboard</span>
+          <iframe src="client.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Client Dashboard</h3>
+          <p>Strategic project management view for hiring managers and founders.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Freelancer Dash -->
+      <a href="freelancer.html" class="screen-card">
+        <div class="screen-info" style="padding: 0;">
+          <div class="screen-preview" style="border-bottom: 1px solid var(--border);">
+            <span class="tag">Dashboard</span>
+            <iframe src="freelancer.html" scrolling="no"></iframe>
+          </div>
+        </div>
+        <div class="screen-info">
+          <h3>Freelancer Dashboard</h3>
+          <p>Utility-first earnings and contract tracking for independent professionals.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Post Job -->
+      <a href="post-job.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Action</span>
+          <iframe src="post-job.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Job Posting</h3>
+          <p>Modular, grid-based form wizard for publishing new opportunities.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+
+      <!-- Messages -->
+      <a href="messages.html" class="screen-card">
+        <div class="screen-preview">
+          <span class="tag">Communication</span>
+          <iframe src="messages.html" scrolling="no"></iframe>
+        </div>
+        <div class="screen-info">
+          <h3>Messaging</h3>
+          <p>Professional two-pane chat interface for real-time collaboration.</p>
+          <div class="btn">Launch Screen →</div>
+        </div>
+      </a>
+    </div>
+
+    <footer style="margin-top: 80px; text-align: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); padding-top: 40px;">
+      Workforce Prototype v1.0 · High Fidelity · Built with Open Design
+    </footer>
+  </div>
+</body>
+</html>

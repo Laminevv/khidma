@@ -1,30 +1,354 @@
 @import "tailwindcss";
 
+/* ─── Brand Design Tokens ─────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Palette (Brand Spec) */
+  --bg:      #f8fafc;   /* Slate 50 — clean B2B background */
+  --surface: #ffffff;   /* Pure white cards */
+  --fg:      #0f172a;   /* Navy Blue — Trust & Authority */
+  --muted:   #64748b;   /* Slate 500 — secondary text */
+  --border:  #e2e8f0;   /* Slate 200 — hairlines */
+  --accent:  #0f766e;   /* Deep Teal — Action & Vitality */
+
+  /* Semantic Colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+  --info:    #3b82f6;
+
+  /* Computed Variants */
+  --accent-soft: color-mix(in oklch, var(--accent) 12%, transparent);
+  --accent-hover: color-mix(in oklch, var(--accent) 80%, black);
+  --fg-soft:     color-mix(in oklch, var(--fg) 5%, transparent);
+
+  /* Typography */
+  --font-display: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-body:    'Tajawal', 'Inter', -apple-system, system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'JetBrains Mono', monospace;
+
+  /* Font Sizes */
+  --fs-h1: clamp(2rem, 5vw, 3.5rem);
+  --fs-h2: clamp(1.5rem, 3vw, 2.25rem);
+  --fs-h3: 1.25rem;
+  --fs-lead: 1.125rem;
+  --fs-body: 0.9375rem;
+  --fs-meta: 0.8125rem;
+  --fs-xs: 0.6875rem;
+
+  /* Spacing Scale */
+  --gap-xs: 0.5rem;
+  --gap-sm: 0.75rem;
+  --gap-md: 1.25rem;
+  --gap-lg: 2rem;
+  --gap-xl: 3rem;
+  --gap-2xl: 6rem;
+
+  /* Geometry */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --container: 1100px;
+  --sidebar-width: 260px;
 }
 
+/* ─── Tailwind CSS 4 Theme Overrides ──────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border-brand: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-hover: var(--accent-hover);
+  --color-fg-soft: var(--fg-soft);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ─── Base Resets ─────────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Input Color Fix (Required per CLAUDE.md conventions) */
 input {
   color: #111827 !important;
   background-color: #ffffff !important;
+}
+
+/* ─── Scrollbar Styling ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* ─── Utility Classes ─────────────────────────────────────────── */
+
+/* Topnav — Frosted Glass */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Card System */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-lg);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gap-lg);
+}
+
+/* Badge System */
+.badge {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-active {
+  background: color-mix(in oklch, var(--success) 15%, var(--surface));
+  color: var(--success);
+}
+.badge-pending {
+  background: color-mix(in oklch, var(--warning) 15%, var(--surface));
+  color: var(--warning);
+}
+.badge-error {
+  background: color-mix(in oklch, var(--error) 15%, var(--surface));
+  color: var(--error);
+}
+.badge-info {
+  background: color-mix(in oklch, var(--info) 15%, var(--surface));
+  color: var(--info);
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--fg);
+  color: var(--surface);
+}
+.btn-primary:hover {
+  background: var(--accent);
+}
+.btn-accent {
+  background: var(--accent);
+  color: var(--surface);
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+}
+.btn-outline {
+  border-color: var(--border);
+  color: var(--fg);
+  background: var(--surface);
+}
+.btn-outline:hover {
+  border-color: var(--fg);
+  background: var(--bg);
+}
+
+/* Stat Card */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--gap-md);
+}
+.stat-card .label {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.stat-card .value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0;
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+.stat-card .trend {
+  font-size: 12px;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Data Table */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.ds-table th {
+  text-align: right;
+  padding: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ds-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.ds-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Eyebrow Label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 16px;
+  display: block;
+}
+
+/* Avatar */
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--surface);
+  flex-shrink: 0;
+}
+
+/* Icon Box */
+.icon-box {
+  width: 48px;
+  height: 48px;
+  background: var(--bg);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+/* Form Fields */
+.field {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.field input,
+.field textarea,
+.field select {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.2s, outline-color 0.2s;
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* Feature Card */
+.feature-card {
+  background: var(--surface);
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+.feature-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.06);
+}
+.feature-card h3 {
+  margin-bottom: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.feature-card p {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Smooth Page Transitions */
+@media (prefers-reduced-motion: no-preference) {
+  .feature-card,
+  .card,
+  .stat-card,
+  .btn {
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
 }

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Join Workforce · Sign in or Register</title>
+  <style>
+    :root {
+      --bg:      #f8fafc;
+      --surface: #ffffff;
+      --fg:      #0f172a;
+      --muted:   #64748b;
+      --border:  #e2e8f0;
+      --accent:  #0f766e;
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, serif; 
+      --font-body:    'Inter', -apple-system, system-ui, sans-serif; 
+
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .auth-split { display: flex; width: 100%; }
+    .auth-visual {
+      flex: 1;
+      background: var(--fg);
+      color: var(--surface);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (max-width: 920px) { .auth-visual { display: none; } }
+
+    .auth-visual::before {
+      content: '';
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+      opacity: 0.1;
+    }
+
+    .auth-visual h1 { font-family: var(--font-display); font-size: 48px; margin-bottom: 24px; position: relative; }
+    .auth-visual p { font-size: 18px; color: var(--muted); max-width: 400px; position: relative; line-height: 1.6; }
+
+    .auth-form-side {
+      width: 560px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px;
+    }
+    @media (max-width: 920px) { .auth-form-side { width: 100%; padding: 40px 20px; } }
+
+    .form-container { max-width: 400px; width: 100%; margin: 0 auto; }
+    .form-container h2 { font-family: var(--font-display); font-size: 32px; margin-bottom: 8px; }
+    .form-container p { color: var(--muted); margin-bottom: 32px; font-size: 15px; }
+
+    .type-toggle {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: var(--radius);
+      margin-bottom: 32px;
+    }
+    .type-toggle button {
+      border: none; background: none; padding: 10px; font-size: 14px; font-weight: 600;
+      border-radius: 6px; cursor: pointer; transition: all 0.2s; color: var(--muted);
+    }
+    .type-toggle button.active { background: var(--surface); color: var(--fg); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+    .field { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 13px; font-weight: 600; }
+    .field input {
+      padding: 12px; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 15px; font-family: inherit;
+    }
+    .field input:focus { outline: 2px solid color-mix(in oklch, var(--accent) 20%, transparent); border-color: var(--accent); }
+
+    .btn-submit {
+      width: 100%; padding: 14px; background: var(--fg); color: var(--surface);
+      border: none; border-radius: var(--radius); font-weight: 700; font-size: 16px;
+      cursor: pointer; margin-top: 12px; transition: background 0.2s;
+    }
+    .btn-submit:hover { background: var(--accent); }
+
+    .social-auth { margin-top: 32px; border-top: 1px solid var(--border); padding-top: 32px; }
+    .social-btn {
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 12px;
+      font-weight: 600; font-size: 14px; cursor: pointer; margin-bottom: 12px;
+    }
+
+    .back-home { position: absolute; top: 40px; left: 40px; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .back-home:hover { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <div class="auth-split">
+    <div class="auth-visual">
+      <a href="landing.html" class="back-home" style="color: white; opacity: 0.6;">← Back to Home</a>
+      <h1>The work is out there.</h1>
+      <p>Join the world's most credible marketplace for high-end professional services. One account, infinite opportunities.</p>
+    </div>
+    
+    <div class="auth-form-side">
+      <div class="form-container">
+        <div style="margin-bottom: 40px;">
+          <a href="landing.html" style="font-family: var(--font-display); font-size: 24px; font-weight: 800; color: var(--fg); text-decoration: none;">Workforce.</a>
+        </div>
+        
+        <h2>Get started.</h2>
+        <p>Already have an account? <a href="#" style="color: var(--accent); font-weight: 600;">Sign in</a></p>
+
+        <div class="type-toggle">
+          <button class="active">I'm a Client</button>
+          <button>I'm a Freelancer</button>
+        </div>
+
+        <form>
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" placeholder="Jane Doe" required>
+          </div>
+          <div class="field">
+            <label>Work Email</label>
+            <input type="email" placeholder="jane@company.com" required>
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" required>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px;">
+            <input type="checkbox" id="terms">
+            <label for="terms" style="font-size: 13px; color: var(--muted);">I agree to the <a href="#" style="color: var(--fg);">Terms of Service</a></label>
+          </div>
+
+          <button type="submit" class="btn-submit">Create Account</button>
+        </form>
+
+        <div class="social-auth">
+          <button class="social-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-2.21 5.39-7.84 5.39-4.84 0-8.79-4.01-8.79-8.94s3.95-8.94 8.79-8.94c2.75 0 4.59 1.17 5.64 2.18l2.58-2.48C19.06 1.19 16.03 0 12.48 0 5.58 0 0 5.58 0 12.48s5.58 12.48 12.48 12.48c7.2 0 12.1-5.07 12.1-12.31 0-.83-.09-1.46-.21-2.09l-11.89-.01z"/></svg>
+            Continue with Google
+          </button>
+          <button class="social-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm3 8h-1.35c-.538 0-.65.221-.65.778v1.222h2l-.209 2h-1.791v7h-3v-7h-2v-2h2v-2.308c0-1.769.931-2.692 3.029-2.692h1.971v3z"/></svg>
+            Continue with Facebook
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Post a New Job · Workforce</title>
+  <style>
+    :root {
+      --bg:      #f8fafc;
+      --surface: #ffffff;
+      --fg:      #0f172a;
+      --muted:   #64748b;
+      --border:  #e2e8f0;
+      --accent:  #0f766e;
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, serif; 
+      --font-body:    'Inter', -apple-system, system-ui, sans-serif; 
+
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 800px; margin: 60px auto; padding-inline: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 48px; }
+
+    header { margin-bottom: 40px; }
+    header h1 { font-family: var(--font-display); font-size: 36px; margin-bottom: 8px; }
+    header p { color: var(--muted); }
+
+    .step-indicator { display: flex; gap: 8px; margin-bottom: 40px; }
+    .step { height: 4px; flex: 1; background: var(--border); border-radius: 2px; }
+    .step.active { background: var(--accent); }
+
+    .form-section { margin-bottom: 32px; }
+    .form-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+
+    .field { margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 14px; font-weight: 600; }
+    .field input, .field textarea, .field select {
+      padding: 12px; border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 15px; font-family: inherit; width: 100%;
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    .btn { padding: 12px 24px; border-radius: var(--radius); font-weight: 700; font-size: 15px; cursor: pointer; border: none; }
+    .btn-primary { background: var(--fg); color: var(--surface); }
+    .btn-primary:hover { background: var(--accent); }
+    .btn-outline { border: 1px solid var(--border); background: var(--surface); color: var(--fg); }
+
+    .tag-input { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); min-height: 48px; align-items: center; }
+    .tag { background: var(--bg); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .tag-remove { cursor: pointer; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="margin-bottom: 32px;">
+      <a href="client.html" style="color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600;">← Back to Dashboard</a>
+    </div>
+
+    <div class="card">
+      <header>
+        <h1>Post a new job.</h1>
+        <p>Tell us about your project and find the perfect expert for the job.</p>
+      </header>
+
+      <div class="step-indicator">
+        <div class="step active"></div>
+        <div class="step"></div>
+        <div class="step"></div>
+      </div>
+
+      <form>
+        <div class="form-section">
+          <h2>Project Details</h2>
+          <div class="field">
+            <label>Job Title</label>
+            <input type="text" placeholder="e.g. Senior React Developer for Fintech App">
+          </div>
+          <div class="field">
+            <label>Project Description</label>
+            <textarea placeholder="Describe the project goals, requirements, and deliverables in detail..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Requirements & Skills</h2>
+          <div class="field">
+            <label>Required Skills</label>
+            <div class="tag-input">
+              <span class="tag">React <span class="tag-remove">×</span></span>
+              <span class="tag">TypeScript <span class="tag-remove">×</span></span>
+              <input type="text" placeholder="Add more..." style="width: auto; flex: 1; border: none; padding: 4px; min-width: 100px;">
+            </div>
+          </div>
+          <div class="field">
+            <label>Experience Level Required</label>
+            <select>
+              <option>Expert (High expertise and authority)</option>
+              <option>Intermediate (Experienced professional)</option>
+              <option>Entry (Solid foundational skills)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Budget & Timeline</h2>
+          <div class="grid-2">
+            <div class="field">
+              <label>Budget Type</label>
+              <select>
+                <option>Fixed Price</option>
+                <option>Hourly Rate</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Estimated Amount ($)</label>
+              <input type="number" placeholder="5000">
+            </div>
+          </div>
+          <div class="field">
+            <label>Project Duration</label>
+            <select>
+              <option>1 to 3 months</option>
+              <option>3 to 6 months</option>
+              <option>Long term (6+ months)</option>
+              <option>Short term (< 1 month)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 32px;">
+          <button type="button" class="btn btn-outline">Save as Draft</button>
+          <button type="submit" class="btn btn-primary">Post Job Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

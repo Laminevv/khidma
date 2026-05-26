@@ -1,0 +1,124 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Launcher · Freelance Marketplace</title>
+  <style>
+    :root {
+      --bg:      #f8fafc;
+      --surface: #ffffff;
+      --fg:      #0f172a;
+      --muted:   #64748b;
+      --border:  #e2e8f0;
+      --accent:  #0f766e;
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, serif;
+      --font-body:    'Inter', -apple-system, system-ui, sans-serif;
+
+      --gap-xl: 48px;
+      --radius-lg: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .launcher-container {
+      max-width: 900px;
+      width: 100%;
+      text-align: center;
+    }
+    .launcher-header { margin-bottom: var(--gap-xl); }
+    .launcher-header h1 { font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); margin: 0; }
+    .launcher-header p { color: var(--muted); font-size: 18px; margin-top: 12px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+    .choice-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 48px 32px;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      cursor: pointer;
+    }
+    .choice-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(15, 118, 110, 0.08);
+    }
+    .icon-circle {
+      width: 64px; height: 64px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      color: var(--surface);
+      font-size: 24px;
+    }
+    .choice-card h2 { font-family: var(--font-display); font-size: 28px; margin: 0; }
+    .choice-card p { color: var(--muted); margin: 0; line-height: 1.6; font-size: 15px; }
+
+    .btn {
+      margin-top: 12px;
+      padding: 12px 24px;
+      background: var(--fg);
+      color: var(--surface);
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s ease;
+    }
+    .choice-card:hover .btn { background: var(--accent); }
+    
+    .icon-svg { width: 32px; height: 32px; fill: currentColor; }
+  </style>
+</head>
+<body>
+  <div class="launcher-container" data-od-id="launcher">
+    <header class="launcher-header">
+      <h1>Choose your view.</h1>
+      <p>Select a persona to explore the professional dashboard experience.</p>
+    </header>
+
+    <div class="grid">
+      <a href="client.html" class="choice-card">
+        <div class="icon-circle">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4zm10 16H4V8h16v12z"/></svg>
+        </div>
+        <h2>I am a Client</h2>
+        <p>Hire top-tier talent, manage contracts, and track project progress with total control.</p>
+        <div class="btn">Enter Client Dashboard</div>
+      </a>
+
+      <a href="freelancer.html" class="choice-card">
+        <div class="icon-circle">
+          <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </div>
+        <h2>I am a Freelancer</h2>
+        <p>Find high-value work, track your earnings, and grow your career with powerful tools.</p>
+        <div class="btn">Enter Freelancer Dashboard</div>
+      </a>
+    </div>
+
+    <footer style="margin-top: var(--gap-xl); color: var(--muted); font-size: 13px;">
+      Professional B2B Freelance Marketplace · Built with Open Design
+    </footer>
+  </div>
+</body>
+</html>
