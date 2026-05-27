@@ -7,6 +7,27 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { requestWithdrawalAction } from '@/app/actions/wallet'
 import NotificationBell from '@/app/components/NotificationBell'
+import {
+  Wallet,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Plus,
+  ArrowLeft,
+  TrendingUp,
+  Download,
+  Lock,
+  Unlock,
+  RotateCcw,
+  Percent,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  History,
+  User,
+  CreditCard,
+  Briefcase,
+  Loader2
+} from 'lucide-react'
 
 interface Profile {
   id: string
@@ -27,40 +48,40 @@ interface Transaction {
   status: string
   reference: string | null
   note: string | null
-  metadata: any
+  metadata: Record<string, unknown> | null
   created_at: string
 }
 
 const typeLabels: Record<string, string> = {
-  deposit: 'إيداع',
-  escrow_lock: 'تأمين (Escrow)',
-  escrow_release: 'تحرير دفعة',
-  refund: 'استرداد',
-  withdrawal: 'سحب',
+  deposit: 'إيداع رصيد الشحن',
+  escrow_lock: 'حجز في الضمان (تأمين)',
+  escrow_release: 'تحرير دفعة أرباح',
+  refund: 'استرداد أموال الضمان',
+  withdrawal: 'سحب أرباح',
   platform_fee: 'رسوم المنصة',
 }
 
-const typeIcons: Record<string, string> = {
-  deposit: '💰',
-  escrow_lock: '🔒',
-  escrow_release: '✅',
-  refund: '↩️',
-  withdrawal: '💸',
-  platform_fee: '🏦',
+const typeIcons: Record<string, React.ReactNode> = {
+  deposit: <Plus className="w-4 h-4 text-emerald-500" />,
+  escrow_lock: <Lock className="w-4 h-4 text-amber-500" />,
+  escrow_release: <Unlock className="w-4 h-4 text-teal-500" />,
+  refund: <RotateCcw className="w-4 h-4 text-blue-500" />,
+  withdrawal: <ArrowUpRight className="w-4 h-4 text-rose-500" />,
+  platform_fee: <Percent className="w-4 h-4 text-slate-500" />,
 }
 
 const statusLabels: Record<string, string> = {
   pending: 'قيد الانتظار',
   completed: 'مكتمل',
-  failed: 'فشل',
-  reversed: 'مسترد',
+  failed: 'فشل المعاملة',
+  reversed: 'تم الاسترداد',
 }
 
 const statusStyles: Record<string, string> = {
-  pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  failed: 'bg-red-50 text-red-600 border-red-200',
-  reversed: 'bg-gray-100 text-gray-600 border-gray-200',
+  pending: 'bg-amber-50 text-amber-700 border-amber-200/80',
+  completed: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+  failed: 'bg-rose-50 text-rose-700 border-rose-200/80',
+  reversed: 'bg-slate-100 text-slate-700 border-slate-200/80',
 }
 
 function WalletContent() {
@@ -71,10 +92,20 @@ function WalletContent() {
   const [loading, setLoading] = useState(true)
   const [showDepositSuccess, setShowDepositSuccess] = useState(false)
 
-  // Withdrawal form state
+  // Withdrawal form states
   const [showWithdrawForm, setShowWithdrawForm] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [payoutDetails, setPayoutDetails] = useState('')
+  const [withdrawMethod, setWithdrawMethod] = useState<'ccp' | 'rip'>('ccp')
+  
+  // CCP specific fields
+  const [ccpNumber, setCcpNumber] = useState('')
+  const [ccpKey, setCcpKey] = useState('')
+  const [ccpFullName, setCcpFullName] = useState('')
+  
+  // RIP specific fields
+  const [ripNumber, setRipNumber] = useState('')
+  const [ripFullName, setRipFullName] = useState('')
+
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawError, setWithdrawError] = useState('')
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
@@ -82,9 +113,11 @@ function WalletContent() {
 
   useEffect(() => {
     if (searchParams?.get('deposit') === 'success') {
-      setShowDepositSuccess(true)
+      setTimeout(() => {
+        setShowDepositSuccess(true)
+      }, 0)
       window.history.replaceState({}, '', '/wallet')
-      setTimeout(() => setShowDepositSuccess(false), 5000)
+      setTimeout(() => setShowDepositSuccess(false), 6000)
     }
 
     const init = async () => {
@@ -130,23 +163,60 @@ function WalletContent() {
       setWithdrawError('المبلغ المطلوب يتجاوز رصيد الأرباح المتاح للسحب')
       return
     }
-    if (!payoutDetails.trim() || payoutDetails.trim().length < 5) {
-      setWithdrawError('يرجى إدخال تفاصيل الدفع بشكل صحيح (RIP أو CCP)')
-      return
+
+    // Algerian CCP / RIP details formatting
+    let payoutString = ''
+    if (withdrawMethod === 'ccp') {
+      if (!ccpNumber || ccpNumber.length < 5 || isNaN(Number(ccpNumber))) {
+        setWithdrawError('يرجى إدخال رقم حساب CCP صحيح')
+        return
+      }
+      if (!ccpKey || ccpKey.length !== 2 || isNaN(Number(ccpKey))) {
+        setWithdrawError('يرجى إدخال مفتاح حساب CCP صحيح (رقمان)')
+        return
+      }
+      if (!ccpFullName.trim() || ccpFullName.trim().length < 5) {
+        setWithdrawError('يرجى إدخال الاسم الكامل لصاحب الحساب البريدي الجاري')
+        return
+      }
+      payoutString = `CCP: ${ccpNumber} / KEY: ${ccpKey} - صاحب الحساب: ${ccpFullName.trim()}`
+    } else {
+      if (!ripNumber || ripNumber.length !== 20 || isNaN(Number(ripNumber))) {
+        setWithdrawError('يرجى إدخال رقم RIP المالي البريدي المكون من 20 رقماً')
+        return
+      }
+      if (!ripFullName.trim() || ripFullName.trim().length < 5) {
+        setWithdrawError('يرجى إدخال الاسم الكامل لصاحب الحساب')
+        return
+      }
+      payoutString = `RIP: ${ripNumber} - صاحب الحساب: ${ripFullName.trim()}`
     }
 
     setWithdrawLoading(true)
-    const res = await requestWithdrawalAction(amount, payoutDetails.trim())
+    const res = await requestWithdrawalAction(amount, payoutString)
 
     if (res.success) {
       setWithdrawSuccess(true)
       setProfile({ ...profile, withdrawable_balance: profile.withdrawable_balance - amount })
       setWithdrawAmount('')
-      setPayoutDetails('')
-      setTimeout(() => {
+      setCcpNumber('')
+      setCcpKey('')
+      setCcpFullName('')
+      setRipNumber('')
+      setRipFullName('')
+      
+      // Refresh transactions after brief delay
+      setTimeout(async () => {
+        const { data: txnData } = await supabase
+          .from('transactions')
+          .select('id, amount, fee, net_amount, type, status, reference, note, metadata, created_at')
+          .or(`from_user_id.eq.${profile.id},to_user_id.eq.${profile.id}`)
+          .order('created_at', { ascending: false })
+          .limit(50)
+        setTransactions(txnData || [])
         setShowWithdrawForm(false)
         setWithdrawSuccess(false)
-      }, 3000)
+      }, 3500)
     } else {
       setWithdrawError(res.error || 'حدث خطأ أثناء معالجة طلب السحب')
     }
@@ -155,8 +225,11 @@ function WalletContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
+          <span className="text-sm font-semibold text-slate-500 font-sans">جاري تحميل المحفظة...</span>
+        </div>
       </div>
     )
   }
@@ -168,7 +241,7 @@ function WalletContent() {
   const deposit_balance = profile.deposit_balance
   const withdrawable_balance = profile.withdrawable_balance
 
-  // Stats
+  // Financial Stats Normalization
   const totalDeposits = transactions
     .filter(t => t.type === 'deposit' && t.status === 'completed')
     .reduce((sum, t) => sum + t.amount, 0)
@@ -178,46 +251,50 @@ function WalletContent() {
   const totalEarnings = transactions
     .filter(t => t.type === 'escrow_release' && t.status === 'completed')
     .reduce((sum, t) => sum + (t.net_amount || t.amount - t.fee), 0)
-  const pendingWithdrawals = transactions
+  const pendingWithdrawalsCount = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'pending').length
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Navbar — matches dashboard */}
-      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white"/>
-                </svg>
-              </div>
-              <span className="text-lg font-bold text-gray-900">خدمة<span className="text-emerald-500">.dz</span></span>
-            </Link>
-          </div>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-2">
-            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">لوحة التحكم</Link>
-            <Link href="/jobs" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">المشاريع</Link>
-            <Link href="/contracts" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">العقود</Link>
-            <Link href="/messages" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-50">الرسائل</Link>
-            {profile.is_admin && (
-              <Link href="/admin" className="text-sm text-red-500 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50">⚙️ الإدارة</Link>
-            )}
-            <NotificationBell />
-            <div className="flex items-center gap-2 mr-2">
-              <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {profile.full_name?.charAt(0) || 'م'}
-              </div>
+    <div className="min-h-screen pb-12" dir="rtl" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
+      {/* ─── Top Navigation Bar ─── */}
+      <header className="topnav sticky top-0 z-50 shadow-xs">
+        <div className="max-w-[1200px] mx-auto px-6 flex items-center h-16">
+          <Link
+            href="/dashboard"
+            className="text-[19px] font-bold ml-12 group flex items-center gap-2"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--fg)', textDecoration: 'none' }}
+          >
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shadow-md shadow-accent/15 transition-all group-hover:scale-105">
+              <Briefcase size={16} className="text-white" />
             </div>
-          </div>
+            <span>خدمة<span style={{ color: 'var(--accent)' }}>.dz</span></span>
+          </Link>
 
-          {/* Mobile nav icons */}
-          <div className="flex md:hidden items-center gap-1">
+          {/* Desktop Links */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/dashboard" className="text-[14px] font-medium transition-colors hover:text-[var(--fg)] text-slate-500 hover:no-underline" style={{ textDecoration: 'none' }}>لوحة التحكم</Link>
+            <Link href="/jobs" className="text-[14px] font-medium transition-colors hover:text-[var(--fg)] text-slate-500 hover:no-underline" style={{ textDecoration: 'none' }}>المشاريع</Link>
+            <Link href="/contracts" className="text-[14px] font-medium transition-colors hover:text-[var(--fg)] text-slate-500 hover:no-underline" style={{ textDecoration: 'none' }}>العقود</Link>
+            <Link href="/messages" className="text-[14px] font-medium transition-colors hover:text-[var(--fg)] text-slate-500 hover:no-underline" style={{ textDecoration: 'none' }}>الرسائل</Link>
+            {profile.is_admin && (
+              <Link href="/admin" className="text-[14px] font-semibold text-rose-500 hover:text-rose-700 hover:no-underline" style={{ textDecoration: 'none' }}>⚙️ الإدارة</Link>
+            )}
+          </nav>
+
+          <div className="mr-auto flex items-center gap-4">
             <NotificationBell />
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-600">
+            <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-white text-xs font-bold font-display shadow-xs">
+                {profile.full_name?.charAt(0) || profile.username?.charAt(0) || 'م'}
+              </div>
+              <span className="text-[14px] font-semibold hidden sm:inline" style={{ color: 'var(--fg)' }}>
+                {profile.full_name || profile.username}
+              </span>
+            </div>
+
+            {/* Mobile Dropdown Button */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 {mobileMenuOpen ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M3 12h18M3 6h18M3 18h18" />}
               </svg>
@@ -225,193 +302,349 @@ function WalletContent() {
           </div>
         </div>
 
-        {/* Mobile dropdown */}
+        {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
-            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 text-sm text-gray-700">
+          <div className="md:hidden border-t border-slate-100 bg-white px-6 py-4 space-y-1.5 shadow-sm">
+            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm text-slate-700 hover:no-underline" style={{ textDecoration: 'none' }}>
               <span>🏠</span> لوحة التحكم
             </Link>
-            <Link href="/jobs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 text-sm text-gray-700">
+            <Link href="/jobs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm text-slate-700 hover:no-underline" style={{ textDecoration: 'none' }}>
               <span>🔍</span> المشاريع
             </Link>
-            <Link href="/contracts" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 text-sm text-gray-700">
+            <Link href="/contracts" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm text-slate-700 hover:no-underline" style={{ textDecoration: 'none' }}>
               <span>📝</span> العقود
             </Link>
-            <Link href="/messages" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 text-sm text-gray-700">
+            <Link href="/messages" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm text-slate-700 hover:no-underline" style={{ textDecoration: 'none' }}>
               <span>💬</span> الرسائل
             </Link>
+            {profile.is_admin && (
+              <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-rose-50 text-sm font-semibold text-rose-700 hover:no-underline" style={{ textDecoration: 'none' }}>
+                <span>⚙️</span> لوحة الإدارة
+              </Link>
+            )}
           </div>
         )}
-      </nav>
+      </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Deposit Success Banner */}
+      {/* ─── Main Content Container ─── */}
+      <main className="max-w-[1200px] mx-auto px-6 py-8">
+        
+        {/* Deposit Success Notification Banner */}
         {showDepositSuccess && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">✅</span>
+          <div className="mb-6 bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-5 py-4 rounded-2xl flex items-center justify-between shadow-xs animate-fadeIn">
+            <div className="flex items-center gap-3.5">
+              <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />
               <div>
-                <p className="font-bold text-sm">تم الإيداع بنجاح!</p>
-                <p className="text-xs text-emerald-600 mt-0.5">ستتم مراجعة الدفعة وإضافتها إلى رصيد الشحن الخاص بك قريباً.</p>
+                <p className="font-extrabold text-sm">تم استلام طلب الشحن بنجاح!</p>
+                <p className="text-xs text-emerald-600/90 mt-0.5">ستتم مراجعة إيصال التحويل BaridiMob/CCP الخاص بك من طرف الإدارة وتفعيل الرصيد قريباً.</p>
               </div>
             </div>
-            <button onClick={() => setShowDepositSuccess(false)} className="text-emerald-500 hover:text-emerald-700">✕</button>
+            <button onClick={() => setShowDepositSuccess(false)} className="text-emerald-500 hover:text-emerald-700 font-bold p-1 hover:bg-emerald-100 rounded-lg cursor-pointer">✕</button>
           </div>
         )}
 
-        {/* Header */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Section Header */}
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-center sm:text-right">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">المحفظة 💳</h1>
-            <p className="text-gray-500 text-sm mt-1">إدارة رصيدك ومعاملاتك المالية</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950 font-sans tracking-tight">المحفظة المالية</h1>
+            <p className="text-slate-500 text-sm mt-1">إدارة رصيد الشحن، الأرباح، وتتبع سجل السحب والتحويلات المالية</p>
           </div>
-          <Link href="/dashboard" className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">
-            ← العودة للوحة التحكم
+          <Link href="/dashboard" className="text-xs sm:text-sm font-semibold text-accent hover:text-accent-hover hover:underline transition-colors flex items-center gap-1 self-center">
+            <ArrowLeft size={16} />
+            <span>العودة للوحة التحكم</span>
           </Link>
         </div>
 
-        {/* Balance Cards + Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
-          {/* Main Deposit Balance */}
-          <div className="sm:col-span-1 bg-emerald-500 rounded-2xl p-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full opacity-10">
-              <div className="absolute -top-8 -left-8 w-32 h-32 bg-white rounded-full"></div>
+        {/* ─── Fund Breakdown Dashboard ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          
+          {/* Card 1: Available Earnings for Withdrawal (Navy Card with Radial Teal Glow) */}
+          <div className="md:col-span-1 bg-[#0f172a] rounded-3xl p-6 text-white relative overflow-hidden shadow-md flex flex-col justify-between min-h-[180px] border border-slate-800">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-accent rounded-full blur-2xl"></div>
+              <div className="absolute -top-8 -left-8 w-24 h-24 bg-teal-500 rounded-full blur-xl"></div>
             </div>
             <div className="relative">
-              <p className="text-emerald-100 text-xs mb-1">رصيد الشحن (للتوظيف)</p>
-              <p className="text-2xl lg:text-3xl font-bold mb-4">{deposit_balance.toLocaleString()} دج</p>
-              <div className="flex gap-2 mt-2">
-                {isClient && (
-                  <Link
-                    href="/wallet/deposit"
-                    className="bg-white text-emerald-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors inline-block"
-                  >
-                    ➕ شحن الرصيد
-                  </Link>
-                )}
-              </div>
+              <p className="text-slate-400 text-xs font-semibold mb-1">رصيد الأرباح (المتاح للسحب)</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tight">{withdrawable_balance.toLocaleString()} <span className="text-xs font-semibold">دج</span></p>
+            </div>
+            <div className="relative pt-6">
+              {canWithdraw ? (
+                <button
+                  onClick={() => { setShowWithdrawForm(true); setWithdrawError(''); setWithdrawSuccess(false) }}
+                  disabled={withdrawable_balance < 10000}
+                  className="w-full bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed border border-accent/20 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowDownLeft size={16} />
+                  <span>طلب سحب أرباح</span>
+                </button>
+              ) : (
+                <div className="text-[11px] text-slate-400 bg-slate-800/40 border border-slate-700/60 p-2.5 rounded-xl text-center leading-relaxed">
+                  حسابات المستقلين فقط مؤهلة لسحب أرباح المشاريع.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Withdrawable Balance */}
-          <div className="sm:col-span-1 bg-gray-900 rounded-2xl p-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full opacity-10">
-              <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-white rounded-full"></div>
+          {/* Card 2: Hiring Deposit Balance (Deep Teal Card) */}
+          <div className="md:col-span-1 bg-accent rounded-3xl p-6 text-white relative overflow-hidden shadow-md flex flex-col justify-between min-h-[180px]">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-white rounded-full"></div>
             </div>
             <div className="relative">
-              <p className="text-gray-400 text-xs mb-1">رصيد الأرباح (للسحب)</p>
-              <p className="text-2xl lg:text-3xl font-bold mb-4 text-emerald-400">{withdrawable_balance.toLocaleString()} دج</p>
-              <div className="flex gap-2 mt-2">
-                {canWithdraw && (
-                  <button
-                    onClick={() => { setShowWithdrawForm(true); setWithdrawError(''); setWithdrawSuccess(false) }}
-                    disabled={withdrawable_balance < 10000}
-                    className="bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400"
-                  >
-                    💸 سحب الأموال
-                  </button>
-                )}
-              </div>
+              <p className="text-teal-100 text-xs font-semibold mb-1">رصيد الشحن (لتوظيف المستقلين)</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">{deposit_balance.toLocaleString()} <span className="text-xs font-semibold">دج</span></p>
+            </div>
+            <div className="relative pt-6">
+              {isClient ? (
+                <Link
+                  href="/wallet/deposit"
+                  className="w-full bg-white text-accent hover:bg-teal-50 text-xs sm:text-sm font-bold py-2.5 px-4 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 hover:no-underline decoration-transparent text-center"
+                >
+                  <Plus size={16} />
+                  <span>شحن الرصيد الآن</span>
+                </Link>
+              ) : (
+                <div className="text-[11px] text-teal-100 bg-teal-800/40 p-2.5 rounded-xl text-center leading-relaxed">
+                  حسابات العملاء فقط مؤهلة لشحن رصيد الضمان وتوظيف المستقلين.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Stats cards */}
-          {isClient && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-blue-50 text-blue-600">💰</div>
-              <div className="text-xl font-bold text-gray-900 mb-1">{totalDeposits.toLocaleString()} دج</div>
-              <div className="text-xs text-gray-500">إجمالي الإيداعات</div>
+          {/* Card 3: Total Deposits / Total Earnings */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs flex flex-col justify-between min-h-[180px]">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 mb-4">
+              <TrendingUp size={20} />
             </div>
-          )}
+            <div>
+              <p className="text-slate-400 text-xs font-semibold mb-1">
+                {canWithdraw ? 'إجمالي الأرباح المستلمة' : 'إجمالي المبالغ المشحونة'}
+              </p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
+                {canWithdraw ? totalEarnings.toLocaleString() : totalDeposits.toLocaleString()} دج
+              </h3>
+            </div>
+            <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-100/60">
+              المبالغ الفعلية التي تم تحريرها أو تأكيد إيداعها بنجاح.
+            </div>
+          </div>
 
-          {canWithdraw && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-emerald-50 text-emerald-600">✅</div>
-              <div className="text-xl font-bold text-gray-900 mb-1">{totalEarnings.toLocaleString()} دج</div>
-              <div className="text-xs text-gray-500">إجمالي الأرباح</div>
+          {/* Card 4: Total Withdrawals / Pending Withdrawals */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs flex flex-col justify-between min-h-[180px]">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-4">
+              <Download size={20} />
             </div>
-          )}
+            <div>
+              <p className="text-slate-400 text-xs font-semibold mb-1">إجمالي السحوبات</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-mono tracking-tight">
+                {totalWithdrawals.toLocaleString()} دج
+              </h3>
+            </div>
+            <div className="text-[11px] text-slate-400 pt-2 border-t border-slate-100/60 flex items-center justify-between">
+              <span>عمليات السحب الإجمالية</span>
+              {pendingWithdrawalsCount > 0 && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-150 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
+                  <Clock size={10} />
+                  <span>{pendingWithdrawalsCount} معلقة</span>
+                </span>
+              )}
+            </div>
+          </div>
 
-          {canWithdraw && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 bg-yellow-50 text-yellow-600">💸</div>
-              <div className="text-xl font-bold text-gray-900 mb-1">{totalWithdrawals.toLocaleString()} دج</div>
-              <div className="text-xs text-gray-500">إجمالي السحوبات {pendingWithdrawals > 0 && <span className="text-yellow-600">({pendingWithdrawals} معلقة)</span>}</div>
-            </div>
-          )}
         </div>
 
-        {/* Withdrawal Form Modal */}
+        {/* ─── Algerian CCP / RIP Withdrawal Request Drawer Form Modal ─── */}
         {showWithdrawForm && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowWithdrawForm(false)}>
-            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4" onClick={() => setShowWithdrawForm(false)}>
+            <div className="bg-white rounded-3xl w-full max-w-md p-6 sm:p-8 shadow-xl border border-slate-100 animate-scaleUp" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-bold text-gray-900 text-lg">طلب سحب 💸</h3>
-                <button onClick={() => setShowWithdrawForm(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-accent-soft rounded-xl flex items-center justify-center">
+                    <ArrowDownLeft className="text-accent w-5 h-5" />
+                  </div>
+                  <h3 className="font-extrabold text-slate-950 text-lg">طلب سحب الأرباح</h3>
+                </div>
+                <button onClick={() => setShowWithdrawForm(false)} className="text-slate-400 hover:text-slate-600 font-bold p-1 hover:bg-slate-50 rounded-lg cursor-pointer">✕</button>
               </div>
 
               {withdrawSuccess ? (
-                <div className="text-center py-8">
-                  <div className="text-5xl mb-4">✅</div>
-                  <h4 className="text-lg font-bold text-gray-900 mb-2">تم تقديم طلب السحب بنجاح!</h4>
-                  <p className="text-gray-500 text-sm">سيقوم المسؤول بمراجعة طلبك وتحويل المبلغ في أقرب وقت.</p>
+                <div className="text-center py-10 animate-fadeIn">
+                  <div className="w-16 h-16 bg-emerald-50 border-2 border-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <h4 className="text-lg font-extrabold text-slate-900 mb-2">تم إرسال طلب السحب!</h4>
+                  <p className="text-slate-500 text-xs max-w-xs mx-auto leading-relaxed">
+                    تم حجز المبلغ بنجاح وسيتم تحويله إلى حسابك البريدي فور تدقيقه من طرف الإدارة (خلال 24-48 ساعة عمل).
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleWithdraw} className="space-y-4">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                    <p className="text-xs text-emerald-600 mb-0.5">رصيد الأرباح المتاح للسحب</p>
-                    <p className="text-lg font-bold text-emerald-700">{withdrawable_balance.toLocaleString()} دج</p>
+                  
+                  {/* Informational Gating Check */}
+                  <div className="bg-emerald-50 border border-emerald-150 rounded-2xl p-4 text-center">
+                    <p className="text-xs text-emerald-700/80 mb-0.5">الرصيد المتاح للتحويل الفوري</p>
+                    <p className="text-xl font-extrabold text-emerald-800 font-mono">{withdrawable_balance.toLocaleString()} دج</p>
                   </div>
 
+                  {/* Algerian withdrawal tabs */}
+                  <div className="bg-slate-50 border border-slate-100 p-1 rounded-xl flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawMethod('ccp')}
+                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${withdrawMethod === 'ccp' ? 'bg-white text-slate-900 shadow-xs border border-slate-150' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      حساب جاري (CCP)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawMethod('rip')}
+                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${withdrawMethod === 'rip' ? 'bg-white text-slate-900 shadow-xs border border-slate-150' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                      رقم RIP (BaridiMob)
+                    </button>
+                  </div>
+
+                  {/* Amount Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">المبلغ المراد سحبه (دج)</label>
-                    <input
-                      type="number"
-                      value={withdrawAmount}
-                      onChange={e => setWithdrawAmount(e.target.value)}
-                      placeholder="مثال: 50000"
-                      min={10000}
-                      max={withdrawable_balance}
-                      required
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">الحد الأدنى للسحب: 10,000 دج</p>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">المبلغ المراد سحبه (دج)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={withdrawAmount}
+                        onChange={e => setWithdrawAmount(e.target.value)}
+                        placeholder="50,000"
+                        min={10000}
+                        max={withdrawable_balance}
+                        required
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-400">دج</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">الحد الأدنى لطلب السحب: 10,000 دج</p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">تفاصيل الدفع</label>
-                    <input
-                      type="text"
-                      value={payoutDetails}
-                      onChange={e => setPayoutDetails(e.target.value)}
-                      placeholder="رقم حساب CCP أو BaridiMob RIP"
-                      required
-                      minLength={5}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">أدخل رقم حساب CCP أو RIP الخاص بك لاستلام التحويل</p>
-                  </div>
+                  {/* Method: CCP Specific Fields */}
+                  {withdrawMethod === 'ccp' && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">رقم حساب CCP</label>
+                          <input
+                            type="text"
+                            value={ccpNumber}
+                            onChange={e => setCcpNumber(e.target.value)}
+                            placeholder="مثال: 0012345678"
+                            maxLength={12}
+                            required
+                            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all font-mono"
+                            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          />
+                        </div>
+                        <div className="col-span-1">
+                          <label className="block text-xs font-bold text-slate-700 mb-1.5">المفتاح (Clef)</label>
+                          <input
+                            type="text"
+                            value={ccpKey}
+                            onChange={e => setCcpKey(e.target.value)}
+                            placeholder="12"
+                            maxLength={2}
+                            required
+                            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all font-mono text-center"
+                            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          />
+                        </div>
+                      </div>
 
-                  {withdrawError && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl p-3 flex items-center gap-2">
-                      <span>⚠️</span> {withdrawError}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الاسم الكامل لصاحب الحساب (بالفرنسية/العربية)</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={ccpFullName}
+                            onChange={e => setCcpFullName(e.target.value)}
+                            placeholder="الاسم واللقب كما هو مدون في الصك البريدي"
+                            required
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all"
+                            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          />
+                          <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-2">
+                  {/* Method: RIP Specific Fields */}
+                  {withdrawMethod === 'rip' && (
+                    <div className="space-y-4 animate-fadeIn">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">رقم الهوية البريدية RIP المكون من 20 رقماً</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={ripNumber}
+                            onChange={e => setRipNumber(e.target.value)}
+                            placeholder="00799999001234567890"
+                            maxLength={20}
+                            required
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all font-mono"
+                            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          />
+                          <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">تجد رقم RIP المالي البريدي في تطبيق بريدي موب BaridiMob</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">الاسم واللقب الكامل لصاحب الحساب</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={ripFullName}
+                            onChange={e => setRipFullName(e.target.value)}
+                            placeholder="الاسم واللقب بالكامل المطابق لتطبيق بريدي موب"
+                            required
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent-soft transition-all"
+                            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          />
+                          <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Form Submission Error Display */}
+                  {withdrawError && (
+                    <div className="bg-rose-50 border border-rose-100 text-rose-700 text-xs rounded-2xl p-3.5 flex items-center gap-2 animate-fadeIn">
+                      <AlertCircle size={16} className="text-rose-500 flex-shrink-0" />
+                      <span>{withdrawError}</span>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-3 pt-4 border-t border-slate-100 mt-2">
                     <button
                       type="submit"
                       disabled={withdrawLoading}
-                      className="flex-1 bg-emerald-500 text-white font-medium py-3 rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="flex-1 bg-accent text-white hover:bg-accent-hover font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shadow-md shadow-accent/15 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      {withdrawLoading ? 'جاري المعالجة...' : 'تأكيد طلب السحب'}
+                      {withdrawLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>جاري تقديم الطلب...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} />
+                          <span>تأكيد طلب السحب</span>
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowWithdrawForm(false)}
-                      className="px-5 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                      className="px-5 py-3 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-all text-xs sm:text-sm font-semibold cursor-pointer"
                     >
                       إلغاء
                     </button>
@@ -422,59 +655,91 @@ function WalletContent() {
           </div>
         )}
 
-        {/* Transaction History */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">سجل المعاملات</h2>
-            <span className="text-xs text-gray-400">{transactions.length} معاملة</span>
+        {/* ─── Transaction History Panel ─── */}
+        <div className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-xs">
+          <div className="px-6 py-4.5 border-b border-slate-200/60 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-accent" />
+              <h2 className="font-extrabold text-slate-900 text-sm sm:text-base">سجل العمليات والتحويلات</h2>
+            </div>
+            <span className="text-xs font-bold text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg">{transactions.length} عملية سجلت</span>
           </div>
 
           {transactions.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-5xl mb-4">📭</div>
-              <p className="text-gray-500 text-sm mb-2">لا توجد معاملات بعد</p>
-              <p className="text-gray-400 text-xs">ستظهر معاملاتك المالية هنا بمجرد البدء في استخدام المنصة</p>
+            <div className="text-center py-20">
+              <div className="w-14 h-14 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-6 h-6 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-bold text-sm">سجل العمليات المالية فارغ</p>
+              <p className="text-slate-400 text-xs mt-1.5 max-w-xs mx-auto leading-relaxed">
+                ستظهر إيداعاتك، سحوباتك، وعمليات تحرير وسداد الضمان بالتفصيل هنا بمجرد المباشرة في استخدام الحساب.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
+              <table className="w-full min-w-[700px] border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-right px-4 sm:px-6 py-3 text-xs text-gray-400 font-medium">النوع</th>
-                    <th className="text-right px-4 sm:px-6 py-3 text-xs text-gray-400 font-medium">المبلغ</th>
-                    <th className="text-right px-4 sm:px-6 py-3 text-xs text-gray-400 font-medium">الرسوم</th>
-                    <th className="text-right px-4 sm:px-6 py-3 text-xs text-gray-400 font-medium">الحالة</th>
-                    <th className="text-right px-4 sm:px-6 py-3 text-xs text-gray-400 font-medium">التاريخ</th>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="text-right px-6 py-3.5 text-xs text-slate-400 font-bold uppercase tracking-wider">نوع العملية</th>
+                    <th className="text-right px-6 py-3.5 text-xs text-slate-400 font-bold uppercase tracking-wider">القيمة الإجمالية</th>
+                    <th className="text-right px-6 py-3.5 text-xs text-slate-400 font-bold uppercase tracking-wider">رسوم التحويل</th>
+                    <th className="text-right px-6 py-3.5 text-xs text-slate-400 font-bold uppercase tracking-wider">حالة العملية</th>
+                    <th className="text-right px-6 py-3.5 text-xs text-slate-400 font-bold uppercase tracking-wider">التاريخ والوقت</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {transactions.map(txn => (
-                    <tr key={txn.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 sm:px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{typeIcons[txn.type] || '📋'}</span>
-                          <span className="text-sm font-medium text-gray-900">{typeLabels[txn.type] || txn.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4">
-                        <span className={`font-bold text-sm ${txn.type === 'deposit' || txn.type === 'escrow_release' || txn.type === 'refund' ? 'text-emerald-600' : 'text-gray-900'}`}>
-                          {txn.type === 'deposit' || txn.type === 'escrow_release' || txn.type === 'refund' ? '+' : '-'}
-                          {txn.amount.toLocaleString()} دج
-                        </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-500">
-                        {txn.fee > 0 ? `${txn.fee.toLocaleString()} دج` : '—'}
-                      </td>
-                      <td className="px-4 sm:px-6 py-4">
-                        <span className={`text-xs px-2.5 py-1 rounded-lg font-medium border ${statusStyles[txn.status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                          {statusLabels[txn.status] || txn.status}
-                        </span>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 text-xs text-gray-400" dir="ltr" style={{ textAlign: 'right' }}>
-                        {new Date(txn.created_at).toLocaleString('ar-DZ')}
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-slate-100/60">
+                  {transactions.map(txn => {
+                    const isPositive =
+                      txn.type === 'deposit' ||
+                      txn.type === 'escrow_release' ||
+                      txn.type === 'refund'
+
+                    return (
+                      <tr key={txn.id} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-6 py-4.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-150 flex items-center justify-center shadow-2xs">
+                              {typeIcons[txn.type] || <Briefcase className="w-4 h-4 text-slate-400" />}
+                            </div>
+                            <div>
+                              <span className="text-sm font-bold text-slate-900 block">{typeLabels[txn.type] || txn.type}</span>
+                              {txn.reference && (
+                                <span className="text-[10px] font-mono text-slate-400 block mt-0.5">مرجع: {txn.reference}</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5">
+                          <span className={`font-mono text-sm font-extrabold ${isPositive ? 'text-emerald-600' : 'text-slate-800'}`}>
+                            {isPositive ? '+' : '-'}
+                            {txn.amount.toLocaleString()} <span className="text-[10px] font-sans font-bold">دج</span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4.5">
+                          {txn.fee > 0 ? (
+                            <span className="text-xs font-mono text-slate-500 font-medium">{txn.fee.toLocaleString()} دج</span>
+                          ) : (
+                            <span className="text-slate-300 text-sm font-light">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4.5">
+                          <span className={`text-[10px] sm:text-xs px-2.5 py-1 rounded-lg font-bold border ${statusStyles[txn.status] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                            {statusLabels[txn.status] || txn.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4.5 text-xs text-slate-400 tracking-wide font-medium" dir="ltr" style={{ textAlign: 'right' }}>
+                          {new Date(txn.created_at).toLocaleString('ar-DZ', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -488,8 +753,11 @@ function WalletContent() {
 export default function WalletPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
+          <span className="text-sm font-semibold text-slate-500 font-sans">جاري تحميل المحفظة...</span>
+        </div>
       </div>
     }>
       <WalletContent />
