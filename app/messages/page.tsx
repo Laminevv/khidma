@@ -6,6 +6,17 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import FileUpload from '@/app/components/FileUpload'
 import { sendNotificationAction } from '@/app/actions/notifications'
+import { 
+  MessageSquare, 
+  Send, 
+  Check, 
+  CheckCheck, 
+  ChevronLeft, 
+  ChevronRight,
+  Briefcase,
+  FileText,
+  Sparkles
+} from 'lucide-react'
 
 interface Message {
   id: string
@@ -217,58 +228,72 @@ function MessagesContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}></div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col" dir="rtl">
-      <nav className="bg-white border-b border-gray-100 z-50 flex-shrink-0">
+    <div className="h-[100dvh] flex flex-col" dir="rtl" style={{ background: 'var(--bg)' }}>
+      {/* ─── Topnav (Frosted Glass) ─── */}
+      <nav className="topnav z-50 flex-shrink-0 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white"/>
-              </svg>
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-md shadow-accent/15 transition-all group-hover:scale-105">
+              <Briefcase size={18} className="text-white" />
             </div>
-            <span className="text-lg font-bold text-gray-900">خدمة<span className="text-emerald-500">.dz</span></span>
+            <span className="text-lg font-bold text-slate-900 font-display">
+              خدمة<span className="text-accent">.dz</span>
+            </span>
           </Link>
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-900">← لوحة التحكم</Link>
+          <Link href="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1">
+            <span>لوحة التحكم</span>
+            <ChevronLeft size={16} />
+          </Link>
         </div>
       </nav>
 
+      {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-4 gap-2 sm:gap-4">
         {/* Conversation list — hidden on mobile when a chat is open */}
-        <div className={`${activeConv ? 'hidden sm:flex' : 'flex'} w-full sm:w-72 flex-shrink-0 bg-white rounded-2xl border border-gray-100 flex-col overflow-hidden`}>
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">الرسائل</h2>
+        <div className={`${activeConv ? 'hidden sm:flex' : 'flex'} w-full sm:w-80 md:w-96 flex-shrink-0 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex-col overflow-hidden`}>
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
+              <MessageSquare size={16} />
+            </div>
+            <h2 className="font-bold text-slate-800 text-base">المحادثات</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <div className="text-3xl mb-2">💬</div>
-                <p className="text-gray-400 text-sm">لا توجد محادثات بعد</p>
+              <div className="text-center py-16 px-4 flex flex-col items-center justify-center h-full">
+                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
+                  <MessageSquare className="w-6 h-6 text-slate-300" />
+                </div>
+                <p className="text-slate-400 text-sm font-medium">لا توجد محادثات نشطة</p>
               </div>
             ) : (
               conversations.map((conv) => (
                 <button key={conv.other_user_id} onClick={() => openConversation(conv)}
-                  className={`w-full text-right flex items-center gap-3 p-4 hover:bg-gray-50 transition-all border-b border-gray-50 ${
-                    activeConv?.other_user_id === conv.other_user_id ? 'bg-emerald-50' : ''
+                  className={`w-full text-right flex items-center gap-3 p-4 hover:bg-slate-50/70 transition-all border-b border-slate-50 relative ${
+                    activeConv?.other_user_id === conv.other_user_id 
+                      ? 'bg-accent-soft/20 border-r-4 border-r-accent' 
+                      : ''
                   }`}>
-                  <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  <div className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
                     {conv.other_full_name?.charAt(0) || '؟'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900 text-sm truncate">{conv.other_full_name}</span>
-                      <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(conv.last_sent_at)}</span>
+                      <span className="font-bold text-slate-800 text-sm truncate">{conv.other_full_name}</span>
+                      <span className="text-[10px] text-slate-400 font-semibold">{timeAgo(conv.last_sent_at)}</span>
                     </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-xs text-gray-400 truncate">{conv.last_message || 'ابدأ المحادثة...'}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-slate-500 truncate leading-relaxed">
+                        {conv.last_message || 'ابدأ المحادثة...'}
+                      </p>
                       {conv.unread_count > 0 && (
-                        <span className="bg-emerald-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                        <span className="bg-accent text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent/15 animate-pulse">
                           {conv.unread_count}
                         </span>
                       )}
@@ -281,66 +306,86 @@ function MessagesContent() {
         </div>
 
         {/* Chat area — full width on mobile */}
-        <div className={`${!activeConv ? 'hidden sm:flex' : 'flex'} flex-1 bg-white rounded-2xl border border-gray-100 flex-col overflow-hidden`}>
+        <div className={`${!activeConv ? 'hidden sm:flex' : 'flex'} flex-1 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex-col overflow-hidden`}>
           {!activeConv ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-5xl mb-4">💬</div>
-                <p className="text-gray-500 font-medium">اختر محادثة للبدء</p>
+            <div className="flex-1 flex items-center justify-center bg-slate-50/20">
+              <div className="text-center p-6 max-w-sm">
+                <div className="w-16 h-16 bg-accent-soft text-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <MessageSquare className="w-8 h-8" />
+                </div>
+                <h3 className="font-bold text-slate-800 text-lg mb-1">صندوق المحادثات</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">اختر محادثة من القائمة الجانبية أو ابدأ التواصل مع المستقلين والعملاء لتنسيق مشاريعك.</p>
               </div>
             </div>
           ) : (
             <>
-              <div className="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-3">
-                {/* Mobile back button */}
-                <button onClick={() => setActiveConv(null)} className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-                </button>
-                <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  {activeConv.other_full_name?.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm">{activeConv.other_full_name}</div>
-                  <div className="text-xs text-emerald-500">@{activeConv.other_username}</div>
+              {/* Chat Header */}
+              <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-white shadow-xs z-10 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  {/* Mobile back button */}
+                  <button onClick={() => setActiveConv(null)} className="sm:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm">
+                    {activeConv.other_full_name?.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm sm:text-base leading-tight">{activeConv.other_full_name}</div>
+                    <div className="text-xs text-accent font-mono">@{activeConv.other_username}</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Messages Viewport */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#fbfcfd]">
                 {messages.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-300 text-sm">ابدأ المحادثة 👋</p>
+                  <div className="text-center py-12 flex flex-col items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-3">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <p className="text-slate-400 text-sm font-semibold">ابدأ المحادثة 👋</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.sender_id === currentUser?.id
                     return (
                       <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm ${
-                          isMe ? 'bg-emerald-500 text-white rounded-tr-sm' : 'bg-gray-100 text-gray-900 rounded-tl-sm'
+                        <div className={`max-w-[75%] sm:max-w-md md:max-w-lg px-4 py-2.5 rounded-2xl text-sm ${
+                          isMe 
+                            ? 'bg-[#0f172a] text-white rounded-tr-none shadow-sm' 
+                            : 'bg-white text-slate-800 rounded-tl-none border border-slate-200/80 shadow-xs'
                         }`}>
                           {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="flex flex-col gap-1.5 mb-2">
+                            <div className="flex flex-col gap-2 mb-2">
                               {msg.attachments.map((url, idx) => {
                                 const fileName = url.split('/').pop() || `ملف ${idx + 1}`
-                                const isImage = url.match(/\.(jpeg|jpg|gif|png)$/) != null
+                                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null
                                 return isImage ? (
-                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
-                                    <img src={url} alt="attachment" className="rounded-xl max-w-full h-auto object-cover border border-black/10" style={{ maxHeight: '200px' }} />
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-black/10 transition-all hover:opacity-90">
+                                    <img src={url} alt="attachment" className="max-w-full h-auto object-cover" style={{ maxHeight: '200px' }} />
                                   </a>
                                 ) : (
-                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border ${isMe ? 'bg-white/20 border-white/20 text-white hover:bg-white/30' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
-                                    <span>📎</span>
-                                    <span className="truncate" dir="ltr">{fileName}</span>
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${isMe ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
+                                    <FileText className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate max-w-[200px]" dir="ltr">{fileName}</span>
                                   </a>
                                 )
                               })}
                             </div>
                           )}
-                          {msg.content && <p className="leading-relaxed">{msg.content}</p>}
-                          <p className={`text-xs mt-1 ${isMe ? 'text-emerald-100' : 'text-gray-400'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
-                            {isMe && <span className="mr-1">{msg.is_read ? ' ✓✓' : ' ✓'}</span>}
-                          </p>
+                          {msg.content && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>}
+                          <div className={`flex items-center gap-1.5 text-[10px] mt-1.5 ${isMe ? 'text-slate-300 justify-end' : 'text-slate-400 justify-start'}`}>
+                            <span className="font-mono">{new Date(msg.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isMe && (
+                              <span>
+                                {msg.is_read ? (
+                                  <CheckCheck className="w-3.5 h-3.5 text-teal-400" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 text-slate-400" />
+                                )}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
@@ -349,19 +394,20 @@ function MessagesContent() {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 border-t border-gray-100 relative">
+              {/* Chat Input Footer */}
+              <div className="p-3 sm:p-4 border-t border-slate-100 bg-white flex flex-col gap-2 relative z-10 flex-shrink-0">
                 {attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="flex flex-wrap gap-2">
                     {attachments.map((url, idx) => (
-                      <div key={idx} className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-xs">
-                        <span className="truncate max-w-[100px]" dir="ltr">{url.split('/').pop()}</span>
-                        <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-emerald-500 hover:text-emerald-700 font-bold ml-1">×</button>
+                      <div key={idx} className="flex items-center gap-1.5 bg-accent-soft text-accent px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-accent/15">
+                        <span className="truncate max-w-[150px]" dir="ltr">{url.split('/').pop()}</span>
+                        <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-accent hover:text-accent-hover transition-colors font-bold mr-1">×</button>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <div className="w-11">
+                  <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
                     <FileUpload 
                       bucketName="attachments"
                       folderPath={`messages/${getRoomId(currentUser?.id, activeConv.other_user_id)}`}
@@ -373,14 +419,12 @@ function MessagesContent() {
                   <input type="text" value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                    placeholder="اكتب رسالة..."
-                    className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
+                    placeholder="اكتب رسالة هنا..."
+                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft transition-all text-slate-800"
                     style={{ color: '#111827', backgroundColor: '#ffffff' }} />
                   <button onClick={sendMessage} disabled={(!newMessage.trim() && attachments.length === 0) || sending}
-                    className="w-11 h-11 bg-emerald-500 text-white rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-colors disabled:opacity-50 flex-shrink-0">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
+                    className="w-11 h-11 bg-accent text-white rounded-xl flex items-center justify-center hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none shadow-md shadow-accent/10 flex-shrink-0">
+                    <Send className="w-4.5 h-4.5 rotate-180" />
                   </button>
                 </div>
               </div>
@@ -395,8 +439,8 @@ function MessagesContent() {
 export default function MessagesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}></div>
       </div>
     }>
       <MessagesContent />

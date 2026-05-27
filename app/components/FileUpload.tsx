@@ -115,12 +115,12 @@ export default function FileUpload({
       {variant === 'default' && (
         <div className="flex flex-wrap gap-3 mb-3">
           {files.map((file, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl text-sm border border-emerald-100">
+            <div key={idx} className="flex items-center gap-2 bg-accent-soft text-accent px-3 py-2 rounded-xl text-sm border border-accent/15">
               <span className="truncate max-w-[150px] font-medium" dir="ltr">{file.name}</span>
               <button 
                 type="button" 
                 onClick={() => removeFile(idx)}
-                className="text-emerald-400 hover:text-emerald-600 transition-colors bg-white w-5 h-5 rounded-full flex items-center justify-center font-bold"
+                className="text-accent/60 hover:text-accent-hover transition-colors bg-white w-5 h-5 rounded-full flex items-center justify-center font-bold"
               >
                 ×
               </button>
@@ -143,26 +143,26 @@ export default function FileUpload({
           <label
             htmlFor={`file-upload-${folderPath.replace(/\//g, '-')}`}
             className={variant === 'default' 
-              ? "cursor-pointer flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-200 rounded-2xl hover:border-emerald-400 hover:bg-emerald-50 transition-all group"
-              : "cursor-pointer flex items-center justify-center w-11 h-11 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 hover:text-emerald-600 transition-colors flex-shrink-0"
+              ? "cursor-pointer flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-200 rounded-2xl hover:border-accent hover:bg-accent-soft transition-all group"
+              : "cursor-pointer flex items-center justify-center w-11 h-11 bg-gray-50 text-gray-500 rounded-xl hover:bg-gray-100 hover:text-accent transition-colors flex-shrink-0"
             }
           >
             {uploading ? (
               variant === 'default' ? (
-                <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium py-2">
+                <div className="flex items-center gap-2 text-accent text-sm font-medium py-2">
                   <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
                   جارٍ الرفع...
                 </div>
               ) : (
-                <svg className="animate-spin text-emerald-500" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="animate-spin text-accent" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                 </svg>
               )
             ) : (
               variant === 'default' ? (
-                <div className="flex items-center gap-3 text-gray-500 group-hover:text-emerald-600 py-1">
+                <div className="flex items-center gap-3 text-gray-500 group-hover:text-accent py-1">
                   <span className="text-xl">📎</span>
                   <span className="text-sm font-medium">اضغط لإرفاق ملفات (حتى {maxSizeMB}MB)</span>
                 </div>
