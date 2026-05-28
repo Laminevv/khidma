@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisputeAction, requestCancellationAction, acceptCancellationAction, rejectCancellationAction } from './actions'
 import DisputeChatModal from './DisputeChatModal'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
+import { ArrowLeft, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react'
 
 interface Milestone {
   id: string
@@ -43,17 +46,7 @@ interface Review {
   reviewer: { username: string; full_name: string } | null
 }
 
-function msStatusLabel(s: string) {
-  const map: Record<string, string> = { pending: 'في الانتظار', in_progress: 'جارٍ التنفيذ', submitted: 'تم التسليم', approved: 'مُعتمد ✓' }
-  return map[s] || s
-}
-
-function msStatusColor(s: string) {
-  const map: Record<string, string> = { pending: 'bg-gray-100 text-gray-500', in_progress: 'bg-yellow-50 text-yellow-700', submitted: 'bg-blue-50 text-blue-700', approved: 'bg-emerald-50 text-emerald-700' }
-  return map[s] || 'bg-gray-100 text-gray-500'
-}
-
-function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function StarRatingInput({ value, onChange, i18n }: { value: number; onChange: (v: number) => void, i18n: any }) {
   const [hover, setHover] = useState(0)
   return (
     <div className="flex items-center gap-1" dir="ltr">
@@ -64,7 +57,7 @@ function StarRatingInput({ value, onChange }: { value: number; onChange: (v: num
           onClick={() => onChange(star)}
           onMouseEnter={() => setHover(star)}
           onMouseLeave={() => setHover(0)}
-          className={`text-3xl transition-all duration-150 hover:scale-110 ${
+          className={`text-3xl transition-all duration-150 hover:scale-110 cursor-pointer ${
             star <= (hover || value) ? 'text-amber-400' : 'text-gray-300'
           }`}
         >
@@ -88,6 +81,7 @@ function StarRatingDisplay({ rating }: { rating: number }) {
 }
 
 export default function ClientContractPage({ initialContract, userId, reviews: initialReviews = [], activeDispute }: { initialContract: Contract, userId: string, reviews?: Review[], activeDispute?: any }) {
+  const { t, i18n } = useTranslation()
   const [contract, setContract] = useState<Contract>(initialContract)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
@@ -111,6 +105,27 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
   
   const [showDisputeChat, setShowDisputeChat] = useState(false)
 
+  const DirectionArrow = i18n.language === 'ar' ? ArrowLeft : ArrowRight
+
+  if (!contract) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">{t('contracts.invoice.notFound')}</p>
+          <Link href="/contracts" className="text-emerald-600 hover:underline flex items-center justify-center gap-1">
+            <DirectionArrow size={16} /> {t('contracts.invoice.backToContracts')}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const msStatusLabel = (s: string) => t(`contracts.status.${s}`, { defaultValue: s })
+  const msStatusColor = (s: string) => {
+    const map: Record<string, string> = { pending: 'bg-gray-100 text-gray-500', in_progress: 'bg-yellow-50 text-yellow-700', submitted: 'bg-blue-50 text-blue-700', approved: 'bg-emerald-50 text-emerald-700' }
+    return map[s] || 'bg-gray-100 text-gray-500'
+  }
+
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
@@ -120,11 +135,11 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
     setActionLoading(milestone.id)
     const res = await lockFundsAction(contract.id, milestone.id, milestone.amount)
     if (res.success) {
-      showToast(`✅ تم تأمين ${milestone.amount.toLocaleString()} دج`)
+      showToast(`✅ ${milestone.amount.toLocaleString()} ${t('common.currency')}`)
       const updated = contract.milestones.map(m => m.id === milestone.id ? { ...m, status: 'in_progress' } : m)
       setContract({ ...contract, milestones: updated as Milestone[] })
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setActionLoading(null)
   }
@@ -143,7 +158,7 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
     )
     await supabase.from('contracts').update({ milestones: updated }).eq('id', contract.id)
     setContract({ ...contract, milestones: updated as Milestone[] })
-    showToast('✅ تم إرسال العمل للمراجعة')
+    showToast('✅')
     setShowDeliveryModal(null); setDeliveryNote(''); setDeliveryFiles([])
     setUploading(false)
   }
@@ -154,12 +169,12 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
     if (res.success) {
       const fee = Math.round(milestone.amount * 0.10)
       const net = milestone.amount - fee
-      showToast(`✅ تم تحرير ${net.toLocaleString()} دج للمستقل`)
+      showToast(`✅ ${net.toLocaleString()} ${t('common.currency')}`)
       const updated = contract.milestones.map(m => m.id === milestone.id ? { ...m, status: 'approved', approved_at: new Date().toISOString() } : m)
       const allDone = updated.every(m => m.status === 'approved')
       setContract({ ...contract, milestones: updated as Milestone[], status: allDone ? 'completed' : contract.status })
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setActionLoading(null)
   }
@@ -194,13 +209,13 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
 
   const handleSubmitReview = async () => {
     if (reviewRating === 0) {
-      showToast('يرجى اختيار تقييم من 1 إلى 5', 'error')
+      showToast('1-5', 'error')
       return
     }
     setReviewLoading(true)
     const res = await submitReviewAction(contract.id, revieweeId, reviewRating, reviewComment)
     if (res.success) {
-      showToast('✅ تم إرسال التقييم بنجاح!')
+      showToast('✅')
       setReviews([...reviews, {
         id: Date.now().toString(),
         rating: reviewRating,
@@ -214,70 +229,70 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
       setReviewRating(0)
       setReviewComment('')
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setReviewLoading(false)
   }
 
   const handleRaiseDispute = async () => {
     if (!disputeReason.trim()) {
-      showToast('يرجى كتابة سبب النزاع', 'error')
+      showToast('x', 'error')
       return
     }
     setDisputeLoading(true)
     const res = await raiseDisputeAction(contract.id, disputeReason)
     if (res.success) {
-      showToast('✅ تم فتح النزاع بنجاح')
+      showToast('✅')
       setContract({ ...contract, status: 'disputed' })
       setShowDisputeModal(false)
       setDisputeReason('')
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setDisputeLoading(false)
   }
 
   const handleRequestCancellation = async () => {
-    if (!confirm('هل أنت متأكد أنك تريد طلب إلغاء هذا العقد؟ سيتم إرسال الطلب للطرف الآخر للموافقة.')) return
+    if (!confirm('?')) return
     setActionLoading('cancel_request')
     const res = await requestCancellationAction(contract.id)
     if (res.success) {
-      showToast('✅ تم إرسال طلب الإلغاء للطرف الآخر')
+      showToast('✅')
       setContract({ ...contract, status: 'cancellation_pending', cancellation_requested_by: userId })
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setActionLoading(null)
   }
 
   const handleAcceptCancellation = async () => {
-    if (!confirm('هل توافق على إلغاء العقد؟ سيتم إنهاء العقد وإرجاع الأموال المحجوزة لصاحب العمل.')) return
+    if (!confirm('?')) return
     setActionLoading('cancel_accept')
     const res = await acceptCancellationAction(contract.id)
     if (res.success) {
-      showToast('✅ تم إلغاء العقد بنجاح')
+      showToast('✅')
       setContract({ ...contract, status: 'cancelled' })
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setActionLoading(null)
   }
 
   const handleRejectCancellation = async () => {
-    if (!confirm('هل ترفض الإلغاء؟ سيعود العقد لحالته النشطة.')) return
+    if (!confirm('?')) return
     setActionLoading('cancel_reject')
     const res = await rejectCancellationAction(contract.id)
     if (res.success) {
-      showToast('✅ تم رفض الإلغاء، العقد لا يزال نشطاً')
+      showToast('✅')
       setContract({ ...contract, status: 'active', cancellation_requested_by: null })
     } else {
-      showToast(res.error || 'حدث خطأ', 'error')
+      showToast(res.error || t('errors.generic'), 'error')
     }
     setActionLoading(null)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl text-sm font-medium shadow-lg ${toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
@@ -288,21 +303,21 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
       {/* Delivery Modal */}
       {showDeliveryModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-md" dir="rtl">
-            <h3 className="font-bold text-gray-900 text-base mb-4">تسليم العمل — {showDeliveryModal.title}</h3>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-md ltr:text-left rtl:text-right">
+            <h3 className="font-bold text-gray-900 text-base mb-4">{t('contracts.modals.deliveryTitle')} {showDeliveryModal.title}</h3>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات التسليم <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('contracts.modals.deliveryNote')} <span className="text-red-400">*</span></label>
               <textarea value={deliveryNote} onChange={(e) => setDeliveryNote(e.target.value)}
-                placeholder="اشرح ما أنجزته..." rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 resize-none"
+                placeholder={t('contracts.modals.deliveryPlaceholder')} rows={4}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 resize-none ltr:text-left rtl:text-right"
                 style={{ color: '#111827' }} />
             </div>
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">رفع الملفات (اختياري)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('contracts.modals.uploadFiles')}</label>
               <div onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-300 hover:bg-emerald-50/30 transition-all">
                 <div className="text-2xl mb-1">📁</div>
-                <p className="text-sm text-gray-500">اضغط لرفع الملفات</p>
+                <p className="text-sm text-gray-500">{t('contracts.modals.clickToUpload')}</p>
                 <p className="text-xs text-gray-400 mt-1">PDF, ZIP, PNG, JPG</p>
               </div>
               <input ref={fileInputRef} type="file" multiple className="hidden"
@@ -310,8 +325,8 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
               {deliveryFiles.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {deliveryFiles.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
-                      <span>📄</span><span className="truncate flex-1">{f.name}</span>
+                    <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg ltr:text-left rtl:text-right">
+                      <span>📄</span><span className="truncate flex-1" dir="ltr">{f.name}</span>
                       <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
                     </div>
                   ))}
@@ -320,12 +335,12 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             </div>
             <div className="flex gap-3">
               <button onClick={submitWork} disabled={uploading || !deliveryNote.trim()}
-                className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-60 flex items-center justify-center gap-2">
+                className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer transition-colors">
                 {uploading ? <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> : '📤'}
-                {uploading ? 'جارٍ الرفع...' : 'إرسال التسليم'}
+                {uploading ? t('contracts.modals.uploading') : t('contracts.modals.sendDelivery')}
               </button>
               <button onClick={() => { setShowDeliveryModal(null); setDeliveryNote(''); setDeliveryFiles([]) }}
-                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600">إلغاء</button>
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">{t('contracts.modals.cancel')}</button>
             </div>
           </div>
         </div>
@@ -334,8 +349,10 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/contracts" className="text-sm text-gray-500 hover:text-gray-900">← عقودي</Link>
-          <Link href="/dashboard" className="flex items-center gap-1.5">
+          <Link href="/contracts" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1 hover:no-underline">
+            <DirectionArrow size={16} /> {t('contracts.title')}
+          </Link>
+          <Link href="/dashboard" className="flex items-center gap-1.5 hover:no-underline">
             <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L10 6H14L11 9L12 13L8 10.5L4 13L5 9L2 6H6L8 2Z" fill="white"/></svg>
             </div>
@@ -344,22 +361,28 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 ltr:text-left rtl:text-right">
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' : contract.status === 'completed' ? 'bg-gray-100 text-gray-600' : contract.status === 'disputed' ? 'bg-red-50 text-red-700' : contract.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-700' : contract.status === 'cancelled' ? 'bg-gray-200 text-gray-700' : 'bg-yellow-50 text-yellow-700'}`}>
-                  {contract.status === 'active' ? 'نشط' : contract.status === 'completed' ? 'مكتمل ✓' : contract.status === 'disputed' ? 'في حالة نزاع ⚖️' : contract.status === 'cancellation_pending' ? 'بانتظار الإلغاء ⏳' : contract.status === 'cancelled' ? 'ملغى 🚫' : contract.status}
+                <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${
+                  contract.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                  contract.status === 'completed' ? 'bg-gray-100 text-gray-600' :
+                  contract.status === 'disputed' ? 'bg-red-50 text-red-700' :
+                  contract.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-700' :
+                  contract.status === 'cancelled' ? 'bg-gray-200 text-gray-700' : 'bg-yellow-50 text-yellow-700'
+                }`}>
+                  {t(`contracts.status.${contract.status}`)}
                 </span>
-                {contract.jobs && <Link href={`/jobs/${contract.jobs.id}`} className="text-xs text-emerald-600 hover:underline truncate">{contract.jobs.title}</Link>}
+                {contract.jobs && <Link href={`/jobs/${contract.jobs.id}`} className="text-xs text-emerald-600 hover:underline truncate hover:no-underline">{contract.jobs.title}</Link>}
               </div>
               <h1 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{contract.title}</h1>
               {totalMilestones > 0 && (
                 <div>
                   <div className="flex justify-between text-xs text-gray-500 mb-2">
-                    <span>التقدم الإجمالي</span>
-                    <span>{completedMilestones}/{totalMilestones} مراحل</span>
+                    <span>{t('contracts.progress')}</span>
+                    <span>{completedMilestones}/{totalMilestones} {t('contracts.milestonesCount')}</span>
                   </div>
                   <div className="bg-gray-100 rounded-full h-2">
                     <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -373,17 +396,17 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">⚖️</div>
                   <div>
-                    <h3 className="font-bold text-red-900 mb-1">تم تجميد هذا العقد بسبب نزاع</h3>
+                    <h3 className="font-bold text-red-900 mb-1">{t('contracts.details.disputeFrozenTitle')}</h3>
                     <p className="text-sm text-red-700 leading-relaxed">
-                      فريق الإدارة يقوم حالياً بمراجعة العقد. يرجى التواصل عبر مركز النزاعات للوصول إلى حل.
+                      {t('contracts.details.disputeFrozenDesc')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowDisputeChat(true)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+                  className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  💬 فتح مركز النزاعات
+                  {t('contracts.details.openDisputeCenter')}
                 </button>
               </div>
             )}
@@ -393,24 +416,24 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">⏳</div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-orange-900 mb-1">طلب إلغاء ودي</h3>
+                    <h3 className="font-bold text-orange-900 mb-1">{t('contracts.status.cancellation_pending_badge')}</h3>
                     {contract.cancellation_requested_by === userId ? (
                       <p className="text-sm text-orange-700 leading-relaxed">
-                        لقد قمت بطلب إلغاء العقد. نحن في انتظار موافقة الطرف الآخر.
+                        {t('contracts.details.cancelRequestedDesc')}
                       </p>
                     ) : (
                       <>
                         <p className="text-sm text-orange-700 leading-relaxed mb-4">
-                          لقد طلب الطرف الآخر إلغاء هذا العقد بشكل ودي. إذا وافقت، سيتم إنهاء العقد وإرجاع جميع الأموال المحجوزة في نظام الضمان لصاحب العمل فوراً وبدون تدخل الإدارة.
+                          {t('contracts.details.cancelReceivedDesc')}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <button onClick={handleAcceptCancellation} disabled={actionLoading === 'cancel_accept'}
-                            className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
-                            {actionLoading === 'cancel_accept' ? '...' : '✅ أوافق على الإلغاء'}
+                            className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50 cursor-pointer transition-colors">
+                            {actionLoading === 'cancel_accept' ? '...' : t('contracts.details.acceptCancel')}
                           </button>
                           <button onClick={handleRejectCancellation} disabled={actionLoading === 'cancel_reject'}
-                            className="bg-white border border-orange-200 text-orange-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-100 disabled:opacity-50">
-                            {actionLoading === 'cancel_reject' ? '...' : '❌ رفض الإلغاء'}
+                            className="bg-white border border-orange-200 text-orange-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-100 disabled:opacity-50 cursor-pointer transition-colors">
+                            {actionLoading === 'cancel_reject' ? '...' : t('contracts.details.rejectCancel')}
                           </button>
                         </div>
                       </>
@@ -421,7 +444,7 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
             )}
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
-              <h2 className="font-semibold text-gray-900 mb-4 sm:mb-5">مراحل التنفيذ والضمان</h2>
+              <h2 className="font-semibold text-gray-900 mb-4 sm:mb-5">{t('contracts.details.milestones')}</h2>
               <div className="space-y-4">
                 {contract.milestones?.map((milestone, index) => (
                   <div key={milestone.id} className={`border rounded-2xl p-4 sm:p-5 transition-all ${
@@ -443,23 +466,23 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                         </div>
                       </div>
                       <div className="text-left flex-shrink-0">
-                        <div className="font-bold text-gray-900 text-sm sm:text-base">{milestone.amount?.toLocaleString()} دج</div>
+                        <div className="font-bold text-gray-900 text-sm sm:text-base" dir="ltr">{milestone.amount?.toLocaleString()} {t('common.currency')}</div>
                         <span className={`text-xs px-2 py-0.5 rounded-lg mt-1 inline-block ${msStatusColor(milestone.status)}`}>
-                          {msStatusLabel(milestone.status)}
+                          {t(`contracts.status.${milestone.status}`)}
                         </span>
                       </div>
                     </div>
 
                     {milestone.delivery_note && (
                       <div className="bg-blue-50 rounded-xl p-3 mb-3">
-                        <p className="text-xs text-blue-700 font-medium mb-1">ملاحظات التسليم:</p>
-                        <p className="text-sm text-blue-600">{milestone.delivery_note}</p>
+                        <p className="text-xs text-blue-700 font-medium mb-1">{t('contracts.details.deliveryNote')}</p>
+                        <p className="text-sm text-blue-600 whitespace-pre-line">{milestone.delivery_note}</p>
                         {milestone.delivery_files && milestone.delivery_files.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {milestone.delivery_files.map((file, i) => (
                               <button key={i} onClick={() => downloadFile(file, i)}
-                                className="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 flex items-center gap-1">
-                                📄 تحميل الملف {i + 1}
+                                className="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 flex items-center gap-1 cursor-pointer">
+                                📄 {t('contracts.details.downloadFile')} {i + 1}
                               </button>
                             ))}
                           </div>
@@ -470,25 +493,25 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                     <div className="flex flex-wrap gap-2 mt-3">
                       {isClient && milestone.status === 'pending' && (
                         <button onClick={() => lockFunds(milestone)} disabled={actionLoading === milestone.id}
-                          className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 w-full sm:w-auto justify-center">
+                          className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 w-full sm:w-auto justify-center cursor-pointer transition-colors">
                           {actionLoading === milestone.id ? <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> : '🔒'}
-                          تأمين الأموال
+                          {t('contracts.details.lockFunds')}
                         </button>
                       )}
                       {isFreelancer && milestone.status === 'in_progress' && (
                         <button onClick={() => setShowDeliveryModal(milestone)}
-                          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-600 w-full sm:w-auto justify-center">
-                          📤 تسليم العمل
+                          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-600 w-full sm:w-auto justify-center cursor-pointer transition-colors">
+                          📤 {t('contracts.details.submitWork')}
                         </button>
                       )}
                       {isClient && milestone.status === 'submitted' && contract.status !== 'disputed' && (
                         <button onClick={() => approveAndRelease(milestone)} disabled={actionLoading === milestone.id}
-                          className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 w-full sm:w-auto justify-center">
-                          {actionLoading === milestone.id ? '...' : '✅'} الموافقة وتحرير الدفعة
+                          className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 w-full sm:w-auto justify-center cursor-pointer transition-colors">
+                          {actionLoading === milestone.id ? '...' : '✅'} {t('contracts.details.approveRelease')}
                         </button>
                       )}
                       {milestone.status === 'approved' && milestone.approved_at && (
-                        <span className="text-xs text-emerald-600">تم الاعتماد {new Date(milestone.approved_at).toLocaleDateString('ar-DZ')}</span>
+                        <span className="text-xs text-emerald-600">{t('contracts.details.approvedOn')} {new Date(milestone.approved_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-DZ' : i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</span>
                       )}
                     </div>
                   </div>
@@ -501,14 +524,14 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
               <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-7">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="text-lg">⭐</span> التقييمات
+                    <span className="text-lg">⭐</span> {t('contracts.details.reviews')}
                   </h2>
                   {canReview && (
                     <button
                       onClick={() => setShowReviewModal(true)}
-                      className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors flex items-center gap-1.5"
+                      className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-amber-600 transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      ✍️ أضف تقييم
+                      ✍️ {t('contracts.details.addReview')}
                     </button>
                   )}
                 </div>
@@ -516,36 +539,36 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
                 {reviews.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-2 opacity-40">💬</div>
-                    <p className="text-gray-400 text-sm">لا توجد تقييمات بعد</p>
+                    <p className="text-gray-400 text-sm">{t('contracts.details.noReviews')}</p>
                     {canReview && (
-                      <p className="text-gray-500 text-xs mt-1">كن أول من يُقيّم!</p>
+                      <p className="text-gray-500 text-xs mt-1">{t('contracts.details.beFirstReview')}</p>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {reviews.map((review) => (
                       <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                               {review.reviewer?.full_name?.charAt(0) || '؟'}
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {review.reviewer?.full_name || 'مستخدم'}
+                                {review.reviewer?.full_name || '...'}
                                 {review.reviewer_id === userId && (
-                                  <span className="text-xs text-emerald-600 mr-1">(أنت)</span>
+                                  <span className="text-xs text-emerald-600 ltr:ml-1 rtl:mr-1">{t('contracts.details.you')}</span>
                                 )}
                               </div>
                               <div className="text-xs text-gray-400">
-                                {new Date(review.created_at).toLocaleDateString('ar-DZ', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                {new Date(review.created_at).toLocaleDateString(i18n.language === 'ar' ? 'ar-DZ' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                               </div>
                             </div>
                           </div>
                           <StarRatingDisplay rating={review.rating} />
                         </div>
                         {review.comment && (
-                          <p className="text-sm text-gray-600 leading-relaxed mt-2 pr-12">{review.comment}</p>
+                          <p className="text-sm text-gray-600 leading-relaxed mt-2 ltr:pl-12 rtl:pr-12">{review.comment}</p>
                         )}
                       </div>
                     ))}
@@ -554,7 +577,7 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
 
                 {hasUserReviewed && (
                   <div className="mt-4 text-center">
-                    <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">✅ لقد قمت بتقييم هذا العقد</span>
+                    <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">✅ {t('contracts.details.youReviewed')}</span>
                   </div>
                 )}
               </div>
@@ -563,67 +586,78 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
 
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">ملخص العقد</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('contracts.details.summary')}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">المبلغ الإجمالي</span>
-                  <span className="font-medium text-gray-900">{contract.total_amount?.toLocaleString()} دج</span>
+                  <span className="text-gray-500">{t('contracts.details.totalAmount')}</span>
+                  <span className="font-medium text-gray-900" dir="ltr">{contract.total_amount?.toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">رسوم المنصة (10%)</span>
-                  <span className="font-medium text-red-500">- {Math.round((contract.total_amount || 0) * 0.10).toLocaleString()} دج</span>
+                  <span className="text-gray-500">{t('contracts.details.platformFee')}</span>
+                  <span className="font-medium text-red-500" dir="ltr">- {Math.round((contract.total_amount || 0) * 0.10).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
-                  <span className="text-gray-500">صافي المستقل</span>
-                  <span className="font-bold text-emerald-600">{Math.round((contract.total_amount || 0) * 0.90).toLocaleString()} دج</span>
+                  <span className="text-gray-500">{t('contracts.details.netFreelancer')}</span>
+                  <span className="font-bold text-emerald-600" dir="ltr">{Math.round((contract.total_amount || 0) * 0.90).toLocaleString()} {t('common.currency')}</span>
                 </div>
+              </div>
+              
+              {/* Link to Invoice Page */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <Link
+                  href={`/contracts/${contract.id}/invoice`}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 border border-slate-200 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-100 hover:text-emerald-600 hover:border-emerald-200 transition-all cursor-pointer hover:no-underline"
+                >
+                  <FileText size={16} />
+                  {t('contracts.invoice.contractDetails', { defaultValue: 'عرض الفاتورة / العقد الرقمي' }).replace(':', '')}
+                </Link>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">أطراف العقد</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('contracts.details.parties')}</h3>
               <div className="space-y-3">
-                <Link href={`/profile/${contract.client?.username}`} className="flex items-center gap-3 group">
+                <Link href={`/profile/${contract.client?.username}`} className="flex items-center gap-3 group hover:no-underline">
                   <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 group-hover:ring-2 group-hover:ring-blue-300 transition-all">
                     {contract.client?.full_name?.charAt(0) || 'ع'}
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">{contract.client?.full_name}</div>
-                    <div className="text-xs text-gray-400">💼 صاحب العمل</div>
+                    <div className="text-xs text-gray-400">💼 {t('contracts.details.clientRole')}</div>
                   </div>
                 </Link>
-                <Link href={`/profile/${contract.freelancer?.username}`} className="flex items-center gap-3 group">
+                <Link href={`/profile/${contract.freelancer?.username}`} className="flex items-center gap-3 group hover:no-underline">
                   <div className="w-9 h-9 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 group-hover:ring-2 group-hover:ring-emerald-300 transition-all">
                     {contract.freelancer?.full_name?.charAt(0) || 'م'}
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">{contract.freelancer?.full_name}</div>
-                    <div className="text-xs text-gray-400">🧑‍💻 المستقل</div>
+                    <div className="text-xs text-gray-400">🧑‍💻 {t('contracts.details.freelancerRole')}</div>
                   </div>
                 </Link>
               </div>
             </div>
 
-            <div className="bg-emerald-500 rounded-2xl p-4 sm:p-6 text-white">
-              <div className="text-2xl mb-2">🔒</div>
-              <h3 className="font-semibold mb-2">نظام الضمان</h3>
-              <p className="text-emerald-100 text-xs leading-relaxed">أموالك محمية — تُحجز عند بدء كل مرحلة وتُحرَّر فقط بعد موافقة صاحب العمل</p>
+            <div className="bg-emerald-500 rounded-2xl p-4 sm:p-6 text-white shadow-lg shadow-emerald-500/20">
+              <div className="text-2xl mb-2"><ShieldCheck className="w-8 h-8 opacity-90" /></div>
+              <h3 className="font-semibold mb-2">{t('contracts.details.escrowSystem')}</h3>
+              <p className="text-emerald-100 text-xs leading-relaxed">{t('contracts.details.escrowDesc')}</p>
             </div>
 
             <Link href={`/messages?user=${isClient ? contract.freelancer_id : contract.client_id}`}
-              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all font-medium">
-              💬 مراسلة الطرف الآخر
+              className="block w-full text-center border border-gray-200 text-gray-700 py-3 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all font-medium hover:no-underline">
+              {t('contracts.details.messageOther')}
             </Link>
 
             {(contract.status === 'active' || contract.status === 'paused') && (
               <>
                 <button onClick={handleRequestCancellation} disabled={actionLoading === 'cancel_request'}
-                  className="w-full text-center border border-orange-200 text-orange-600 py-3 rounded-xl text-sm hover:bg-orange-50 transition-all font-medium disabled:opacity-50 mt-2">
-                  {actionLoading === 'cancel_request' ? '...' : '🤝 طلب إلغاء ودي'}
+                  className="w-full text-center border border-orange-200 text-orange-600 py-3 rounded-xl text-sm hover:bg-orange-50 transition-all font-medium disabled:opacity-50 mt-2 cursor-pointer">
+                  {actionLoading === 'cancel_request' ? '...' : t('contracts.details.requestCancel')}
                 </button>
                 <button onClick={() => setShowDisputeModal(true)}
-                  className="w-full text-center border border-red-200 text-red-600 py-3 rounded-xl text-sm hover:bg-red-50 transition-all font-medium mt-2">
-                  ⚖️ رفع نزاع
+                  className="w-full text-center border border-red-200 text-red-600 py-3 rounded-xl text-sm hover:bg-red-50 transition-all font-medium mt-2 cursor-pointer">
+                  {t('contracts.details.raiseDispute')}
                 </button>
               </>
             )}
@@ -634,20 +668,20 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
       {/* ── Dispute Modal ── */}
       {showDisputeModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md" dir="rtl">
-            <h3 className="font-bold text-gray-900 text-lg mb-2">رفع نزاع</h3>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md ltr:text-left rtl:text-right">
+            <h3 className="font-bold text-gray-900 text-lg mb-2">{t('contracts.modals.disputeTitle')}</h3>
             <p className="text-sm text-gray-500 mb-5 leading-relaxed">
-              عند رفع النزاع، سيتم تجميد العقد فوراً. يرجى توضيح المشكلة بالتفصيل وسيقوم فريق الإدارة بالتدخل في أقرب وقت.
+              {t('contracts.modals.disputeDesc')}
             </p>
 
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">سبب النزاع <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('contracts.modals.disputeReason')} <span className="text-red-500">*</span></label>
               <textarea
                 value={disputeReason}
                 onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="اشرح المشكلة بالتفصيل لكي يتمكن الفريق من المساعدة..."
+                placeholder={t('contracts.modals.disputePlaceholder')}
                 rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400 resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-400 resize-none ltr:text-left rtl:text-right"
                 style={{ color: '#111827' }}
               />
             </div>
@@ -656,16 +690,16 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
               <button
                 onClick={handleRaiseDispute}
                 disabled={disputeLoading || !disputeReason.trim()}
-                className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 {disputeLoading ? <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> : '⚖️'}
-                {disputeLoading ? 'جارٍ الإرسال...' : 'تأكيد رفع النزاع'}
+                {disputeLoading ? t('contracts.modals.sending') : t('contracts.modals.confirmDispute')}
               </button>
               <button
                 onClick={() => { setShowDisputeModal(false); setDisputeReason('') }}
-                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                إلغاء
+                {t('contracts.modals.cancel')}
               </button>
             </div>
           </div>
@@ -675,35 +709,31 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
       {/* ── Review Modal ── */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md" dir="rtl">
-            <h3 className="font-bold text-gray-900 text-base mb-1">تقييم التعاون</h3>
-            <p className="text-sm text-gray-500 mb-5">كيف كانت تجربتك مع {revieweeName}؟</p>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md ltr:text-left rtl:text-right">
+            <h3 className="font-bold text-gray-900 text-base mb-1">{t('contracts.modals.reviewTitle')}</h3>
+            <p className="text-sm text-gray-500 mb-5">{t('contracts.modals.howWasExperience')} {revieweeName}؟</p>
 
             {/* Star Rating Input */}
             <div className="flex flex-col items-center mb-5">
-              <StarRatingInput value={reviewRating} onChange={setReviewRating} />
+              <StarRatingInput value={reviewRating} onChange={setReviewRating} i18n={i18n} />
               <p className="text-sm text-gray-500 mt-2 h-5">
-                {reviewRating === 1 && 'سيئ'}
-                {reviewRating === 2 && 'مقبول'}
-                {reviewRating === 3 && 'جيد'}
-                {reviewRating === 4 && 'جيد جداً'}
-                {reviewRating === 5 && 'ممتاز!'}
+                {reviewRating > 0 && t(`contracts.modals.ratings.${reviewRating}`)}
               </p>
             </div>
 
             {/* Comment */}
             <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">تعليق (اختياري)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('contracts.modals.commentOptional')}</label>
               <textarea
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
-                placeholder="اكتب تعليقك عن التجربة..."
+                placeholder={t('contracts.modals.commentPlaceholder')}
                 rows={3}
                 maxLength={500}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-amber-400 resize-none ltr:text-left rtl:text-right"
                 style={{ color: '#111827' }}
               />
-              <p className="text-xs text-gray-400 mt-1 text-left" dir="ltr">{reviewComment.length}/500</p>
+              <p className="text-xs text-gray-400 mt-1 ltr:text-right rtl:text-left" dir="ltr">{reviewComment.length}/500</p>
             </div>
 
             {/* Actions */}
@@ -711,18 +741,18 @@ export default function ClientContractPage({ initialContract, userId, reviews: i
               <button
                 onClick={handleSubmitReview}
                 disabled={reviewLoading || reviewRating === 0}
-                className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-medium hover:bg-amber-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-medium hover:bg-amber-600 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 {reviewLoading ? (
                   <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                 ) : '⭐'}
-                {reviewLoading ? 'جاري الإرسال...' : 'إرسال التقييم'}
+                {reviewLoading ? t('contracts.modals.sending') : t('contracts.modals.sendReview')}
               </button>
               <button
                 onClick={() => { setShowReviewModal(false); setReviewRating(0); setReviewComment('') }}
-                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                إلغاء
+                {t('contracts.modals.cancel')}
               </button>
             </div>
           </div>

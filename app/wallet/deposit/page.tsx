@@ -2,49 +2,20 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
 import {
   uploadReceiptAction,
   submitManualDepositAction,
   initiateChargilyDepositAction,
 } from './actions'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 type Method = 'ccp' | 'baridimob' | 'edahabia'
 
-const METHODS = [
-  {
-    id: 'ccp' as Method,
-    label: 'حساب CCP',
-    icon: '🏦',
-    desc: 'التحويل عبر بريد الجزائر',
-  },
-  {
-    id: 'baridimob' as Method,
-    label: 'بريدي موب',
-    icon: '📱',
-    desc: 'الدفع عبر تطبيق بريدي موب',
-  },
-  {
-    id: 'edahabia' as Method,
-    label: 'الذهبية / CIB',
-    icon: '💳',
-    desc: 'الدفع الإلكتروني عبر Chargily',
-  },
-]
-
-const ACCOUNT_DETAILS: Record<'ccp' | 'baridimob', { label: string; value: string }[]> = {
-  ccp: [
-    { label: 'رقم الحساب (RIP)', value: '00799999000000000000' },
-    { label: 'اسم المستفيد', value: 'خدمة DZ — Khidma DZ' },
-  ],
-  baridimob: [
-    { label: 'رقم الحساب (RIP)', value: '00799999000000000000' },
-    { label: 'اسم المستفيد', value: 'خدمة DZ — Khidma DZ' },
-    { label: 'رقم الهاتف', value: '0555 000 000' },
-  ],
-}
-
 export default function DepositPage() {
   const router = useRouter()
+  const { t, i18n } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [method, setMethod] = useState<Method>('ccp')
@@ -58,6 +29,40 @@ export default function DepositPage() {
   const [copied, setCopied] = useState<string | null>(null)
 
   const isManual = method === 'ccp' || method === 'baridimob'
+  const DirectionArrow = i18n.language === 'ar' ? ArrowLeft : ArrowRight
+
+  const METHODS = [
+    {
+      id: 'ccp' as Method,
+      label: t('walletPage.deposit.methods.ccpDesc').split(' ')[0] + ' CCP', // Simplistic label mapping
+      icon: '🏦',
+      desc: t('walletPage.deposit.methods.ccpDesc'),
+    },
+    {
+      id: 'baridimob' as Method,
+      label: 'BaridiMob',
+      icon: '📱',
+      desc: t('walletPage.deposit.methods.baridimobDesc'),
+    },
+    {
+      id: 'edahabia' as Method,
+      label: t('walletPage.deposit.methods.edahabia'),
+      icon: '💳',
+      desc: t('walletPage.deposit.methods.edahabiaDesc'),
+    },
+  ]
+
+  const ACCOUNT_DETAILS: Record<'ccp' | 'baridimob', { label: string; value: string }[]> = {
+    ccp: [
+      { label: t('walletPage.deposit.ripAccount'), value: '00799999000000000000' },
+      { label: t('walletPage.deposit.beneficiary'), value: 'خدمة DZ — Khidma DZ' },
+    ],
+    baridimob: [
+      { label: t('walletPage.deposit.ripAccount'), value: '00799999000000000000' },
+      { label: t('walletPage.deposit.beneficiary'), value: 'خدمة DZ — Khidma DZ' },
+      { label: t('walletPage.deposit.phone'), value: '0555 000 000' },
+    ],
+  }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -80,7 +85,6 @@ export default function DepositPage() {
 
     try {
       if (method === 'edahabia') {
-        // BUG-03 FIX: userId is no longer passed; server derives it from session
         const result = await initiateChargilyDepositAction(numAmount)
         if (!result.success) {
           setError(result.error)
@@ -92,7 +96,6 @@ export default function DepositPage() {
         return
       }
 
-      // Manual: validate sender details
       if (!senderName.trim() || senderName.trim().length < 3) {
         setError('يجب إدخال الاسم الكامل للمرسل')
         setLoading(false)
@@ -104,7 +107,6 @@ export default function DepositPage() {
         return
       }
 
-      // Upload receipt first
       if (!file) {
         setError('يجب رفع إيصال الدفع')
         setLoading(false)
@@ -113,7 +115,6 @@ export default function DepositPage() {
 
       const fd = new FormData()
       fd.append('receipt', file)
-      // BUG-03 FIX: userId no longer passed; server derives it from session
       const uploadResult = await uploadReceiptAction(fd)
 
       if (!uploadResult.success) {
@@ -122,7 +123,6 @@ export default function DepositPage() {
         return
       }
 
-      // BUG-03 FIX: userId no longer passed; server derives it from session
       const depositResult = await submitManualDepositAction(
         numAmount,
         method as 'ccp' | 'baridimob',
@@ -136,11 +136,11 @@ export default function DepositPage() {
         return
       }
 
-      setSuccess(depositResult.message)
-      setTimeout(() => router.push('/wallet'), 3000)
+      setSuccess(t('walletPage.depositSuccess'))
+      setTimeout(() => router.push('/wallet?deposit=success'), 3000)
 
     } catch {
-      setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.')
+      setError(t('errors.generic'))
     } finally {
       setLoading(false)
     }
@@ -151,7 +151,7 @@ export default function DepositPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" dir="rtl">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="bg-white rounded-2xl border border-gray-100 p-10 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
@@ -159,13 +159,13 @@ export default function DepositPage() {
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">تم إرسال طلب الإيداع!</h2>
-          <p className="text-gray-500 text-sm leading-relaxed mb-6">{success}</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('walletPage.depositSuccess')}</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-6">{t('walletPage.depositSuccessDesc')}</p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
-            جارٍ التحويل للمحفظة...
+            {t('walletPage.deposit.redirecting')}
           </div>
         </div>
       </div>
@@ -173,13 +173,13 @@ export default function DepositPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
 
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link href="/wallet" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
-            ← المحفظة
+            <DirectionArrow size={16} /> {t('walletPage.title')}
           </Link>
           <Link href="/dashboard" className="flex items-center gap-1.5">
             <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -195,23 +195,23 @@ export default function DepositPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">إيداع رصيد</h1>
-          <p className="text-gray-500 text-sm mt-1">اختر طريقة الدفع المناسبة لك</p>
+        <div className="mb-8 ltr:text-left rtl:text-right">
+          <h1 className="text-2xl font-bold text-gray-900">{t('walletPage.deposit.title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('walletPage.deposit.subtitle')}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 ltr:text-left rtl:text-right">
 
           {/* Method selector */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">طريقة الدفع</h2>
+            <h2 className="font-semibold text-gray-900 mb-4">{t('walletPage.deposit.paymentMethod')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {METHODS.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setMethod(m.id)}
-                  className={`p-4 rounded-xl border-2 text-right transition-all ${method === m.id
+                  className={`p-4 rounded-xl border-2 ltr:text-left rtl:text-right transition-all ${method === m.id
                     ? 'border-emerald-500 bg-emerald-50'
                     : 'border-gray-100 hover:border-gray-200'
                     }`}
@@ -228,23 +228,23 @@ export default function DepositPage() {
 
           {/* Amount */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">مبلغ الإيداع</h2>
+            <h2 className="font-semibold text-gray-900 mb-4">{t('walletPage.deposit.amount')}</h2>
             <div className="relative">
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="10,000"
+                placeholder="10000"
                 min="1000"
                 required
-                className={inputClass + ' pl-16'}
+                className={inputClass + ' ltr:pl-12 rtl:pr-16'}
                 style={{ color: '#111827', backgroundColor: '#ffffff' }}
               />
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">
-                دج
+              <span className="absolute ltr:left-4 rtl:right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">
+                {t('common.currency')}
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-2">الحد الأدنى: 1,000 دج</p>
+            <p className="text-xs text-gray-400 mt-2">1,000 {t('common.currency')}</p>
 
             {/* Quick amounts */}
             <div className="flex gap-2 mt-3 flex-wrap">
@@ -258,7 +258,7 @@ export default function DepositPage() {
                     : 'border-gray-200 text-gray-600 hover:border-emerald-300'
                     }`}
                 >
-                  {a.toLocaleString()} دج
+                  {a.toLocaleString()} {t('common.currency')}
                 </button>
               ))}
             </div>
@@ -270,7 +270,7 @@ export default function DepositPage() {
 
               {/* Account details */}
               <div>
-                <h2 className="font-semibold text-gray-900 mb-3">تفاصيل الحساب</h2>
+                <h2 className="font-semibold text-gray-900 mb-3">{t('walletPage.deposit.accountDetails')}</h2>
                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 space-y-3">
                   {ACCOUNT_DETAILS[method as 'ccp' | 'baridimob'].map((detail) => (
                     <div key={detail.label} className="flex items-center justify-between gap-2">
@@ -283,7 +283,7 @@ export default function DepositPage() {
                         onClick={() => copyToClipboard(detail.value)}
                         className="flex-shrink-0 text-xs bg-white border border-emerald-200 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-all"
                       >
-                        {copied === detail.value ? '✓ تم النسخ' : 'نسخ'}
+                        {copied === detail.value ? t('walletPage.deposit.copied') : t('walletPage.deposit.copy')}
                       </button>
                     </div>
                   ))}
@@ -291,7 +291,7 @@ export default function DepositPage() {
                 <div className="flex items-start gap-2 mt-3 bg-yellow-50 border border-yellow-100 rounded-xl p-3">
                   <span className="text-yellow-500 mt-0.5">⚠️</span>
                   <p className="text-xs text-yellow-700 leading-relaxed">
-                    بعد إتمام التحويل، ارفع صورة الإيصال أدناه. سيتم تأكيد الإيداع خلال 24 ساعة من مراجعة الفريق.
+                    {t('walletPage.deposit.warning')}
                   </p>
                 </div>
               </div>
@@ -299,16 +299,16 @@ export default function DepositPage() {
               {/* Sender details */}
               <div>
                 <h2 className="font-semibold text-gray-900 mb-3">
-                  معلومات المرسل <span className="text-red-400">*</span>
+                  {t('walletPage.deposit.senderInfo')} <span className="text-red-400">*</span>
                 </h2>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">الاسم الكامل للمرسل</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('walletPage.deposit.senderName')}</label>
                     <input
                       type="text"
                       value={senderName}
                       onChange={(e) => setSenderName(e.target.value)}
-                      placeholder="مثال: محمد أمين بن علي"
+                      placeholder=""
                       required
                       minLength={3}
                       className={inputClass}
@@ -316,18 +316,17 @@ export default function DepositPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">رقم الحساب/CCP للمرسل</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('walletPage.deposit.senderAccount')}</label>
                     <input
                       type="text"
                       value={senderAccount}
                       onChange={(e) => setSenderAccount(e.target.value)}
-                      placeholder="مثال: 00799999000000000000"
+                      placeholder=""
                       required
                       minLength={5}
                       className={inputClass}
                       style={{ color: '#111827', backgroundColor: '#ffffff' }}
                     />
-                    <p className="text-xs text-gray-400 mt-1">أدخل رقم الحساب الذي تم التحويل منه</p>
                   </div>
                 </div>
               </div>
@@ -335,7 +334,7 @@ export default function DepositPage() {
               {/* Receipt upload */}
               <div>
                 <h2 className="font-semibold text-gray-900 mb-3">
-                  رفع إيصال الدفع <span className="text-red-400">*</span>
+                  {t('walletPage.deposit.uploadReceipt')} <span className="text-red-400">*</span>
                 </h2>
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -347,7 +346,7 @@ export default function DepositPage() {
                   {file ? (
                     <div className="flex items-center justify-center gap-3">
                       <span className="text-2xl">📄</span>
-                      <div className="text-right">
+                      <div className="ltr:text-left rtl:text-right">
                         <p className="font-medium text-gray-900 text-sm">{file.name}</p>
                         <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(0)} KB</p>
                       </div>
@@ -356,8 +355,8 @@ export default function DepositPage() {
                   ) : (
                     <>
                       <div className="text-3xl mb-2">📁</div>
-                      <p className="text-sm text-gray-600 font-medium">اضغط لرفع الإيصال</p>
-                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF — حتى 5MB</p>
+                      <p className="text-sm text-gray-600 font-medium">{t('walletPage.deposit.clickToUpload')}</p>
+                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, PDF — up to 5MB</p>
                     </>
                   )}
                 </div>
@@ -380,17 +379,10 @@ export default function DepositPage() {
                   🔒
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">دفع آمن عبر Chargily</h3>
+                  <h3 className="font-semibold text-gray-900 mb-1">{t('walletPage.deposit.securePayment')}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    سيتم تحويلك لبوابة الدفع الآمنة الخاصة بـ Chargily لإتمام العملية.
-                    يدعم بطاقات الذهبية (Edahabia) وبطاقات CIB.
+                    {t('walletPage.deposit.securePaymentDesc')}
                   </p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="text-xs text-green-600 font-medium">اتصال مشفر SSL</span>
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    <span className="text-xs text-green-600 font-medium">معتمد من بنك الجزائر</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -417,14 +409,14 @@ export default function DepositPage() {
                 <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
-                {method === 'edahabia' ? 'جارٍ التحويل...' : 'جارٍ الإرسال...'}
+                {method === 'edahabia' ? t('walletPage.deposit.redirecting') : t('walletPage.deposit.sending')}
               </>
             ) : (
               <>
-                {method === 'edahabia' ? '🔒 الدفع عبر Chargily' : '📤 إرسال طلب الإيداع'}
+                {method === 'edahabia' ? `🔒 ${t('walletPage.deposit.methods.edahabiaDesc')}` : `📤 ${t('walletPage.deposit.submit')}`}
                 {amount && Number(amount) >= 1000 && (
-                  <span className="bg-emerald-600 px-2 py-0.5 rounded-lg text-sm">
-                    {Number(amount).toLocaleString()} دج
+                  <span className="bg-emerald-600 px-2 py-0.5 rounded-lg text-sm ltr:ml-2 rtl:mr-2">
+                    {Number(amount).toLocaleString()} {t('common.currency')}
                   </span>
                 )}
               </>
@@ -432,8 +424,8 @@ export default function DepositPage() {
           </button>
 
           <p className="text-center text-xs text-gray-400">
-            بإرسال الطلب توافق على{' '}
-            <Link href="/terms" className="text-emerald-600 hover:underline">سياسة الإيداع</Link>
+            {t('walletPage.deposit.agreeTo')}{' '}
+            <Link href="/terms" className="text-emerald-600 hover:underline">{t('walletPage.deposit.depositPolicy')}</Link>
           </p>
 
         </form>

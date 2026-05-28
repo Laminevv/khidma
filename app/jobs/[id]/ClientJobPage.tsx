@@ -3,17 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
 import { sendNotificationAction } from '@/app/actions/notifications'
 import FileUpload from '@/app/components/FileUpload'
-
-function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime()
-  const days = Math.floor(diff / 86400000)
-  if (days === 0) return 'اليوم'
-  if (days === 1) return 'أمس'
-  return `منذ ${days} يوم`
-}
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface Proposal {
   id: string
@@ -30,6 +25,7 @@ interface Proposal {
 export default function JobDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { t, i18n } = useTranslation()
   const [job, setJob] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [proposals, setProposals] = useState<Proposal[]>([])
@@ -44,6 +40,16 @@ export default function JobDetailPage() {
     delivery_days: '',
     attachments: [] as string[],
   })
+
+  const DirectionArrow = i18n.language === 'ar' ? ArrowLeft : ArrowRight
+
+  function timeAgo(date: string) {
+    const diff = Date.now() - new Date(date).getTime()
+    const days = Math.floor(diff / 86400000)
+    if (days === 0) return t('time.justNow', { defaultValue: 'اليوم' })
+    if (days === 1) return t('time.daysAgo', { count: 1 })
+    return t('time.daysAgo', { count: days })
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -99,7 +105,6 @@ export default function JobDetailPage() {
       setSubmitted(true)
       setShowProposalForm(false)
 
-      // Notify job owner of new proposal
       sendNotificationAction(
         job.client_id,
         'new_proposal',
@@ -139,7 +144,7 @@ export default function JobDetailPage() {
         .single()
 
       if (error) {
-        alert('خطأ: ' + error.message)
+        alert('Error: ' + error.message)
         setAcceptingId(null)
         return
       }
@@ -149,7 +154,6 @@ export default function JobDetailPage() {
         supabase.from('jobs').update({ status: 'in_progress' }).eq('id', job.id),
       ])
 
-      // Notify freelancer that their proposal was accepted
       sendNotificationAction(
         prop.freelancer_id,
         'proposal_accepted',
@@ -160,12 +164,12 @@ export default function JobDetailPage() {
 
       router.push(`/contracts/${contract.id}`)
     } catch {
-      alert('حدث خطأ غير متوقع')
+      alert(t('errors.generic'))
     }
     setAcceptingId(null)
   }
 
-  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all"
+  const inputClass = "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all ltr:text-left rtl:text-right"
 
   if (loading) {
     return (
@@ -177,10 +181,12 @@ export default function JobDetailPage() {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
         <div className="text-center">
-          <p className="text-gray-500 mb-4">المشروع غير موجود</p>
-          <Link href="/jobs" className="text-emerald-600 hover:underline">← العودة للمشاريع</Link>
+          <p className="text-gray-500 mb-4">{t('jobs.details.notFound')}</p>
+          <Link href="/jobs" className="text-emerald-600 hover:underline flex items-center justify-center gap-1">
+            <DirectionArrow size={16} /> {t('jobs.details.backToJobs')}
+          </Link>
         </div>
       </div>
     )
@@ -189,10 +195,12 @@ export default function JobDetailPage() {
   const isClient = user?.id === job.client_id
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/jobs" className="text-sm text-gray-500 hover:text-gray-900">← العودة للمشاريع</Link>
+          <Link href="/jobs" className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
+            <DirectionArrow size={16} /> {t('jobs.details.backToJobs')}
+          </Link>
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
             <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -204,7 +212,7 @@ export default function JobDetailPage() {
         </div>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 ltr:text-left rtl:text-right">
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
 
           {/* Main */}
@@ -214,32 +222,32 @@ export default function JobDetailPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-7">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-medium">
-                  {job.category}
+                  {t(`jobs.categories.${job.category}`, { defaultValue: job.category })}
                 </span>
                 <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${
                   job.status === 'open' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
                 }`}>
-                  {job.status === 'open' ? 'مفتوح' : job.status === 'in_progress' ? 'قيد التنفيذ' : job.status}
+                  {t(`jobs.status.${job.status}`, { defaultValue: job.status })}
                 </span>
               </div>
 
               <h1 className="text-xl font-bold text-gray-900 mb-4">{job.title}</h1>
 
-              <div className="flex items-center gap-5 text-xs text-gray-400 mb-6">
+              <div className="flex items-center gap-5 text-xs text-gray-400 mb-6 flex-wrap">
                 <span>📅 {timeAgo(job.created_at)}</span>
-                <span>👁 {job.views_count || 0} مشاهدة</span>
-                <span>📋 {job.proposals_count || 0} عرض</span>
-                {job.deadline && <span>⏰ ينتهي {new Date(job.deadline).toLocaleDateString('ar-DZ')}</span>}
+                <span>👁 {job.views_count || 0} {t('jobs.details.views')}</span>
+                <span>📋 {job.proposals_count || 0} {t('jobs.details.proposals')}</span>
+                {job.deadline && <span>⏰ {t('jobs.details.endsIn')} {new Date(job.deadline).toLocaleDateString(i18n.language === 'ar' ? 'ar-DZ' : i18n.language === 'fr' ? 'fr-FR' : 'en-US')}</span>}
               </div>
 
               <div className="border-t border-gray-100 pt-5 mt-5">
-                <h2 className="font-semibold text-gray-900 mb-3">الوصف</h2>
+                <h2 className="font-semibold text-gray-900 mb-3">{t('jobs.details.description')}</h2>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
               </div>
 
               {job.attachments && job.attachments.length > 0 && (
                 <div className="border-t border-gray-100 pt-5 mt-5">
-                  <h2 className="font-semibold text-gray-900 mb-3">مرفقات المشروع</h2>
+                  <h2 className="font-semibold text-gray-900 mb-3">{t('jobs.details.attachments')}</h2>
                   <div className="flex flex-wrap gap-2">
                     {job.attachments.map((url: string, idx: number) => {
                       const fileName = url.split('/').pop() || `Attachment ${idx + 1}`
@@ -256,7 +264,7 @@ export default function JobDetailPage() {
 
               {job.required_skills?.length > 0 && (
                 <div className="border-t border-gray-100 pt-5 mt-5">
-                  <h2 className="font-semibold text-gray-900 mb-3">المهارات المطلوبة</h2>
+                  <h2 className="font-semibold text-gray-900 mb-3">{t('jobs.details.requiredSkills')}</h2>
                   <div className="flex flex-wrap gap-2">
                     {job.required_skills.map((skill: string) => (
                       <span key={skill} className="bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-lg">{skill}</span>
@@ -269,14 +277,14 @@ export default function JobDetailPage() {
             {/* Proposal form */}
             {showProposalForm && (
               <div className="bg-white rounded-2xl border border-emerald-200 p-7">
-                <h2 className="font-semibold text-gray-900 mb-5">تقديم عرضك</h2>
+                <h2 className="font-semibold text-gray-900 mb-5">{t('jobs.details.submitProposal')}</h2>
                 <form onSubmit={handleSubmitProposal} className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">رسالة التقديم</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">{t('jobs.details.coverLetter')}</label>
                     <textarea
                       value={proposal.cover_letter}
                       onChange={(e) => setProposal({ ...proposal, cover_letter: e.target.value })}
-                      placeholder="اشرح لماذا أنت الأنسب لهذا المشروع..."
+                      placeholder={t('jobs.details.coverLetterPlaceholder')}
                       required rows={5}
                       className={inputClass + ' resize-none'}
                       style={{ color: '#111827' }}
@@ -284,14 +292,14 @@ export default function JobDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">مبلغ العرض (دج)</label>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">{t('jobs.details.bidAmount')} ({t('common.currency')})</label>
                       <input type="number" value={proposal.bid_amount}
                         onChange={(e) => setProposal({ ...proposal, bid_amount: e.target.value })}
-                        placeholder="15,000" required min="0"
+                        placeholder="15000" required min="0"
                         className={inputClass} style={{ color: '#111827' }} />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">مدة التسليم (أيام)</label>
+                      <label className="text-sm font-medium text-gray-700 mb-1.5 block">{t('jobs.details.deliveryDays')}</label>
                       <input type="number" value={proposal.delivery_days}
                         onChange={(e) => setProposal({ ...proposal, delivery_days: e.target.value })}
                         placeholder="7" required min="1"
@@ -299,7 +307,7 @@ export default function JobDetailPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">مرفقات العرض (اختياري)</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block">{t('jobs.details.proposalAttachments')}</label>
                     <FileUpload 
                       bucketName="attachments" 
                       folderPath={`proposals/${user?.id}`} 
@@ -315,11 +323,11 @@ export default function JobDetailPage() {
                           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                         </svg>
                       )}
-                      إرسال العرض
+                      {t('jobs.details.sendProposal')}
                     </button>
                     <button type="button" onClick={() => setShowProposalForm(false)}
                       className="px-5 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                      إلغاء
+                      {t('jobs.details.cancel')}
                     </button>
                   </div>
                 </form>
@@ -330,11 +338,11 @@ export default function JobDetailPage() {
             {submitted && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
                 <div className="text-2xl mb-2">✅</div>
-                <p className="text-emerald-700 font-medium">تم إرسال عرضك بنجاح!</p>
-                <p className="text-emerald-600 text-sm mt-1">سيتواصل معك صاحب العمل قريباً</p>
+                <p className="text-emerald-700 font-medium">{t('jobs.details.proposalSent')}</p>
+                <p className="text-emerald-600 text-sm mt-1">{t('jobs.details.clientWillContact')}</p>
                 <Link href={`/messages?user=${job.client_id}`}
                   className="mt-3 inline-block bg-emerald-500 text-white px-5 py-2 rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors">
-                  💬 راسل صاحب العمل
+                  💬 {t('jobs.details.messageClient')}
                 </Link>
               </div>
             )}
@@ -342,7 +350,7 @@ export default function JobDetailPage() {
             {/* Proposals list for client */}
             {isClient && proposals.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-7">
-                <h2 className="font-semibold text-gray-900 mb-5">العروض المستلمة ({proposals.length})</h2>
+                <h2 className="font-semibold text-gray-900 mb-5">{t('jobs.details.receivedProposals')} ({proposals.length})</h2>
                 <div className="space-y-4">
                   {proposals.map((prop) => (
                     <div key={prop.id} className={`border rounded-xl p-5 ${
@@ -361,9 +369,9 @@ export default function JobDetailPage() {
                             )}
                           </div>
                         </div>
-                        <div className="text-left">
-                          <div className="font-bold text-gray-900">{prop.bid_amount?.toLocaleString()} دج</div>
-                          <div className="text-xs text-gray-400">{prop.delivery_days} يوم</div>
+                        <div className="ltr:text-right rtl:text-left">
+                          <div className="font-bold text-gray-900">{prop.bid_amount?.toLocaleString()} {t('common.currency')}</div>
+                          <div className="text-xs text-gray-400">{prop.delivery_days} {t('time.daysAgo').replace('منذ ', '').replace('{{count}} ', '')}</div>
                         </div>
                       </div>
 
@@ -384,11 +392,11 @@ export default function JobDetailPage() {
                       )}
 
                       {prop.status === 'accepted' ? (
-                        <span className="text-sm text-emerald-600 font-medium">✅ تم قبول هذا العرض</span>
+                        <span className="text-sm text-emerald-600 font-medium">✅ {t('jobs.details.acceptedProposal')}</span>
                       ) : prop.status === 'rejected' ? (
-                        <span className="text-sm text-gray-400">مرفوض</span>
+                        <span className="text-sm text-gray-400">{t('jobs.details.rejectedProposal')}</span>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <button
                             onClick={() => handleAcceptProposal(prop)}
                             disabled={acceptingId === prop.id}
@@ -399,11 +407,11 @@ export default function JobDetailPage() {
                                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                               </svg>
                             ) : '✓'}
-                            قبول العرض وإنشاء عقد
+                            {t('jobs.details.acceptAndCreateContract')}
                           </button>
                           <Link href={`/messages?user=${prop.freelancer_id}`}
                             className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm hover:border-emerald-300 hover:text-emerald-600 transition-all">
-                            💬 مراسلة
+                            💬 {t('jobs.details.message')}
                           </Link>
                         </div>
                       )}
@@ -417,27 +425,27 @@ export default function JobDetailPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">الميزانية</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('jobs.details.budget')}</h3>
               <div className="text-2xl font-bold text-gray-900 mb-1">
                 {job.budget_min && job.budget_max
                   ? `${job.budget_min.toLocaleString()} — ${job.budget_max.toLocaleString()}`
-                  : job.budget_max ? `حتى ${job.budget_max.toLocaleString()}` : 'قابل للتفاوض'}
+                  : job.budget_max ? `${t('jobs.upTo')} ${job.budget_max.toLocaleString()}` : t('jobs.details.negotiable')}
               </div>
-              <div className="text-xs text-gray-400 mb-5">دينار جزائري</div>
+              <div className="text-xs text-gray-400 mb-5">{t('common.currency')}</div>
 
               {!isClient && job.status === 'open' && (
                 <>
                   {!user ? (
                     <Link href="/auth/login"
                       className="w-full block text-center bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors text-sm">
-                      سجّل دخول لتقديم عرض
+                      {t('jobs.details.loginToPropose')}
                     </Link>
                   ) : submitted ? (
-                    <div className="text-center text-emerald-600 text-sm font-medium py-2">✅ تم تقديم عرضك</div>
+                    <div className="text-center text-emerald-600 text-sm font-medium py-2">✅ {t('jobs.details.proposalSent')}</div>
                   ) : (
                     <button onClick={() => setShowProposalForm(true)}
                       className="w-full bg-emerald-500 text-white py-3 rounded-xl font-medium hover:bg-emerald-600 transition-colors text-sm">
-                      تقديم عرض
+                      {t('jobs.details.submitProposal')}
                     </button>
                   )}
                 </>
@@ -445,7 +453,7 @@ export default function JobDetailPage() {
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">صاحب المشروع</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">{t('jobs.details.client')}</h3>
               <Link href={`/profile/${job.profiles?.username}`} className="flex items-center gap-3 group">
                 <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold group-hover:ring-2 group-hover:ring-emerald-300 transition-all">
                   {job.profiles?.full_name?.charAt(0) || 'م'}

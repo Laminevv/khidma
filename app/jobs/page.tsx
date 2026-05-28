@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import LanguageSwitcher from '@/app/components/LanguageSwitcher'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
 import {
   Search,
   SlidersHorizontal,
@@ -14,6 +16,8 @@ import {
   Plus,
   SearchX,
   Loader2,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react'
 
 interface Job {
@@ -38,34 +42,15 @@ interface Job {
 }
 
 const CATEGORIES = [
-  { value: 'all', label: 'الكل' },
-  { value: 'development', label: 'تطوير' },
-  { value: 'design', label: 'تصميم' },
-  { value: 'marketing', label: 'تسويق' },
-  { value: 'writing', label: 'كتابة' },
-  { value: 'translation', label: 'ترجمة' },
-  { value: 'data', label: 'بيانات' },
-  { value: 'other', label: 'أخرى' },
+  'all', 'development', 'design', 'marketing', 'writing', 'translation', 'data', 'other'
 ]
 
-const WILAYAS: Record<number, string> = {
-  1: 'أدرار', 2: 'الشلف', 3: 'الأغواط', 4: 'أم البواقي',
-  5: 'باتنة', 6: 'بجاية', 7: 'بسكرة', 8: 'بشار',
-  9: 'البليدة', 10: 'البويرة', 16: 'الجزائر', 19: 'سطيف',
-  23: 'عنابة', 25: 'قسنطينة', 31: 'وهران',
-}
-
-function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `منذ ${mins} دقيقة`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `منذ ${hours} ساعة`
-  const days = Math.floor(hours / 24)
-  return `منذ ${days} يوم`
-}
+const SORTS = [
+  'newest', 'oldest', 'highestBudget', 'lowestBudget'
+]
 
 export default function JobsPage() {
+  const { t, i18n } = useTranslation()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('all')
@@ -73,6 +58,18 @@ export default function JobsPage() {
   const [sort, setSort] = useState('newest')
   const [user, setUser] = useState<any>(null)
   const [showFilters, setShowFilters] = useState(false)
+
+  const DirectionArrow = i18n.language === 'ar' ? ArrowLeft : ArrowRight
+
+  function timeAgo(date: string) {
+    const diff = Date.now() - new Date(date).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return t('time.minutesAgo', { count: mins || 1 })
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return t('time.hoursAgo', { count: hours })
+    const days = Math.floor(hours / 24)
+    return t('time.daysAgo', { count: days })
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
@@ -93,8 +90,8 @@ export default function JobsPage() {
 
     if (sort === 'newest') query = query.order('created_at', { ascending: false })
     else if (sort === 'oldest') query = query.order('created_at', { ascending: true })
-    else if (sort === 'budget_high') query = query.order('budget_max', { ascending: false })
-    else if (sort === 'budget_low') query = query.order('budget_min', { ascending: true })
+    else if (sort === 'highestBudget') query = query.order('budget_max', { ascending: false })
+    else if (sort === 'lowestBudget') query = query.order('budget_min', { ascending: true })
 
     const { data } = await query
     setJobs(data || [])
@@ -107,18 +104,18 @@ export default function JobsPage() {
     j.description.toLowerCase().includes(search.toLowerCase())
   )
 
-  const categoryLabel = (cat: string) =>
-    CATEGORIES.find(c => c.value === cat)?.label || cat
+  const categoryLabel = (cat: string) => t(`jobs.categories.${cat}`, { defaultValue: cat })
+  const sortLabel = (s: string) => t(`jobs.filters.${s}`, { defaultValue: s })
 
   return (
-    <div className="min-h-screen" dir="rtl" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
+    <div className="min-h-screen" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'} style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
 
       {/* ─── Top Navigation ─── */}
-      <header className="topnav">
+      <header className="topnav sticky top-0 z-50 shadow-xs bg-white border-b border-slate-100">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center h-16">
           <Link
             href={user ? '/dashboard' : '/'}
-            className="text-[19px] font-bold ml-12"
+            className="text-[19px] font-bold ltr:mr-12 rtl:ml-12"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--fg)', textDecoration: 'none' }}
           >
             خدمة<span style={{ color: 'var(--accent)' }}>.dz</span>
@@ -129,18 +126,20 @@ export default function JobsPage() {
               className="text-[14px] font-medium"
               style={{ color: 'var(--fg)' }}
             >
-              تصفح المشاريع
+              {t('jobs.browseJobs')}
             </span>
-            <Link
-              href="/messages"
-              className="text-[14px] font-medium transition-colors hover:text-[var(--fg)]"
-              style={{ color: 'var(--muted)', textDecoration: 'none' }}
-            >
-              الرسائل
-            </Link>
+            {user && (
+              <Link
+                href="/messages"
+                className="text-[14px] font-medium transition-colors hover:text-[var(--fg)]"
+                style={{ color: 'var(--muted)', textDecoration: 'none' }}
+              >
+                {t('nav.messages')}
+              </Link>
+            )}
           </nav>
 
-          <div className="mr-auto flex items-center gap-4">
+          <div className="ltr:ml-auto rtl:mr-auto flex items-center gap-4">
             <LanguageSwitcher />
             {user ? (
               <>
@@ -148,16 +147,16 @@ export default function JobsPage() {
                   {user.user_metadata?.full_name || user.email}
                 </span>
                 <Link href="/dashboard" className="btn btn-outline" style={{ padding: '6px 14px', fontSize: '13px' }}>
-                  لوحة التحكم
+                  {t('nav.dashboard')}
                 </Link>
                 <Link href="/jobs/new" className="btn btn-accent" style={{ padding: '6px 14px', fontSize: '13px' }}>
                   <Plus className="w-3.5 h-3.5" />
-                  نشر مشروع
+                  {t('jobs.postJob')}
                 </Link>
               </>
             ) : (
               <Link href="/auth/login" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                تسجيل الدخول
+                {t('auth.login')}
               </Link>
             )}
           </div>
@@ -184,7 +183,7 @@ export default function JobsPage() {
           }}
         >
           <SlidersHorizontal className="w-4 h-4" />
-          {showFilters ? 'إخفاء الفلاتر' : 'فلترة المشاريع'}
+          {showFilters ? t('jobs.hideFilters') : t('jobs.filterJobs')}
         </button>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -197,7 +196,7 @@ export default function JobsPage() {
             {/* Category Filter */}
             <div className="mb-6">
               <h3
-                className="mb-3 uppercase"
+                className="mb-3 uppercase ltr:text-left rtl:text-right"
                 style={{
                   fontSize: '13px',
                   fontWeight: 700,
@@ -205,23 +204,23 @@ export default function JobsPage() {
                   color: 'var(--fg)',
                 }}
               >
-                الفئة
+                {t('jobs.category')}
               </h3>
               <div className="space-y-1">
                 {CATEGORIES.map((cat) => (
                   <button
-                    key={cat.value}
-                    onClick={() => setCategory(cat.value)}
-                    className="w-full text-right px-3 py-2 rounded-lg text-sm transition-all"
+                    key={cat}
+                    onClick={() => setCategory(cat)}
+                    className="w-full ltr:text-left rtl:text-right px-3 py-2 rounded-lg text-sm transition-all"
                     style={{
-                      background: category === cat.value ? 'var(--accent-soft)' : 'transparent',
-                      color: category === cat.value ? 'var(--accent)' : 'var(--muted)',
-                      fontWeight: category === cat.value ? 600 : 400,
+                      background: category === cat ? 'var(--accent-soft)' : 'transparent',
+                      color: category === cat ? 'var(--accent)' : 'var(--muted)',
+                      fontWeight: category === cat ? 600 : 400,
                       border: 'none',
                       cursor: 'pointer',
                     }}
                   >
-                    {cat.label}
+                    {cat === 'all' ? t('jobs.filters.all') : categoryLabel(cat)}
                   </button>
                 ))}
               </div>
@@ -230,7 +229,7 @@ export default function JobsPage() {
             {/* Sort Filter */}
             <div>
               <h3
-                className="mb-3 uppercase"
+                className="mb-3 uppercase ltr:text-left rtl:text-right"
                 style={{
                   fontSize: '13px',
                   fontWeight: 700,
@@ -238,28 +237,23 @@ export default function JobsPage() {
                   color: 'var(--fg)',
                 }}
               >
-                ترتيب حسب
+                {t('jobs.sortBy')}
               </h3>
               <div className="space-y-1">
-                {[
-                  { value: 'newest', label: 'الأحدث' },
-                  { value: 'oldest', label: 'الأقدم' },
-                  { value: 'budget_high', label: 'أعلى ميزانية' },
-                  { value: 'budget_low', label: 'أدنى ميزانية' },
-                ].map((s) => (
+                {SORTS.map((s) => (
                   <button
-                    key={s.value}
-                    onClick={() => setSort(s.value)}
-                    className="w-full text-right px-3 py-2 rounded-lg text-sm transition-all"
+                    key={s}
+                    onClick={() => setSort(s)}
+                    className="w-full ltr:text-left rtl:text-right px-3 py-2 rounded-lg text-sm transition-all"
                     style={{
-                      background: sort === s.value ? 'var(--accent-soft)' : 'transparent',
-                      color: sort === s.value ? 'var(--accent)' : 'var(--muted)',
-                      fontWeight: sort === s.value ? 600 : 400,
+                      background: sort === s ? 'var(--accent-soft)' : 'transparent',
+                      color: sort === s ? 'var(--accent)' : 'var(--muted)',
+                      fontWeight: sort === s ? 600 : 400,
                       border: 'none',
                       cursor: 'pointer',
                     }}
                   >
-                    {s.label}
+                    {sortLabel(s)}
                   </button>
                 ))}
               </div>
@@ -284,7 +278,7 @@ export default function JobsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث عن مشروع (مثلاً: مطور React، مصمم UI)..."
+                placeholder={t('jobs.searchPlaceholder')}
                 className="flex-1 border-none outline-none bg-transparent"
                 style={{
                   font: 'inherit',
@@ -300,11 +294,11 @@ export default function JobsPage() {
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    جارٍ التحميل...
+                    {t('walletPage.loading')}
                   </span>
                 ) : (
                   <>
-                    <strong style={{ color: 'var(--fg)' }}>{filtered.length}</strong> مشروع
+                    <strong style={{ color: 'var(--fg)' }}>{filtered.length}</strong> {t('jobs.title')}
                   </>
                 )}
               </span>
@@ -332,10 +326,10 @@ export default function JobsPage() {
                 style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
               >
                 <SearchX className="w-10 h-10 mx-auto mb-4" style={{ color: 'var(--muted)' }} />
-                <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>لا توجد مشاريع في هذه الفئة</p>
+                <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>{t('jobs.noJobsDesc')}</p>
                 {user && (
                   <Link href="/jobs/new" className="btn btn-accent" style={{ fontSize: '14px' }}>
-                    كن أول من ينشر مشروعاً
+                    {t('jobs.beFirst')}
                   </Link>
                 )}
               </div>
@@ -363,7 +357,7 @@ export default function JobsPage() {
                     }}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
-                      <div className="flex-1">
+                      <div className="flex-1 ltr:text-left rtl:text-right">
                         {/* Tags */}
                         <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <span
@@ -408,7 +402,7 @@ export default function JobsPage() {
                           {job.profiles?.wilaya && (
                             <span className="flex items-center gap-1.5">
                               <MapPin className="w-3.5 h-3.5" />
-                              {WILAYAS[job.profiles.wilaya] || `ولاية ${job.profiles.wilaya}`}
+                              {t(`wilayas.${job.profiles.wilaya}`, { defaultValue: `Wilaya ${job.profiles.wilaya}` })}
                             </span>
                           )}
                           <span className="flex items-center gap-1.5">
@@ -417,28 +411,28 @@ export default function JobsPage() {
                           </span>
                           <span className="flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5" />
-                            {job.proposals_count} عرض
+                            {t('jobs.proposalsCount', { count: job.proposals_count })}
                           </span>
                         </div>
                       </div>
 
                       {/* Budget */}
-                      <div className="flex-shrink-0 text-left">
+                      <div className="flex-shrink-0 ltr:text-right rtl:text-left">
                         <div className="text-[16px] font-bold" style={{ color: 'var(--fg)' }}>
                           {job.budget_min && job.budget_max
                             ? `${job.budget_min.toLocaleString()} - ${job.budget_max.toLocaleString()}`
                             : job.budget_max
-                            ? `حتى ${job.budget_max.toLocaleString()}`
-                            : 'تفاوض'}
+                            ? `${t('jobs.upTo')} ${job.budget_max.toLocaleString()}`
+                            : t('jobs.negotiable')}
                         </div>
-                        <div className="text-xs text-left" style={{ color: 'var(--muted)' }}>دج</div>
+                        <div className="text-xs ltr:text-right rtl:text-left" style={{ color: 'var(--muted)' }}>{t('common.currency')}</div>
                         {job.deadline && (
                           <div
-                            className="flex items-center gap-1 mt-2 text-xs"
+                            className="flex items-center gap-1 mt-2 text-xs ltr:justify-end rtl:justify-start"
                             style={{ color: 'var(--warning)' }}
                           >
                             <Clock className="w-3 h-3" />
-                            {new Date(job.deadline).toLocaleDateString('ar-DZ')}
+                            {new Date(job.deadline).toLocaleDateString(i18n.language === 'ar' ? 'ar-DZ' : i18n.language === 'fr' ? 'fr-FR' : 'en-US')}
                           </div>
                         )}
                       </div>

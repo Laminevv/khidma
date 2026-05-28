@@ -20,14 +20,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     .single()
 
   if (error || !contract) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">العقد غير موجود</p>
-          <Link href="/contracts" className="text-emerald-600 hover:underline">← العودة للعقود</Link>
-        </div>
-      </div>
-    )
+    return <ClientContractPage initialContract={null as any} userId={user.id} reviews={[]} activeDispute={null} />
   }
 
   // Fetch existing reviews for this contract
