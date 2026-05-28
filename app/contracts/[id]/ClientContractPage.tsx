@@ -7,7 +7,7 @@ import { lockFundsAction, approveAndReleaseAction, submitReviewAction, raiseDisp
 import DisputeChatModal from './DisputeChatModal'
 import { useTranslation } from 'react-i18next'
 import '@/lib/i18n'
-import { ArrowLeft, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, MessageSquare } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, MessageSquare, FileText } from 'lucide-react'
 
 interface Milestone {
   id: string
