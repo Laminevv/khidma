@@ -145,6 +145,14 @@ export default function DashboardLayoutClient({ children, profile }: { children:
           </div>
         )}
 
+        {/* Desktop Header */}
+        <header className="hidden lg:flex items-center justify-end px-10 pt-6 pb-2">
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <NotificationBell />
+          </div>
+        </header>
+
         <main className="p-6 lg:p-10 flex-1">
           {children}
         </main>
