@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import {
   Shield,
   Coins,
@@ -153,6 +154,7 @@ export default function EscrowGuidePage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <Link
               href="/guides/hiring"
               className="hidden sm:inline-block text-xs font-semibold hover:text-[var(--accent)] transition-colors"

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import { submitContactAction } from '@/app/actions/contact'
 import {
   Mail,
@@ -159,6 +160,7 @@ export default function ContactPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             {user ? (
               <Link href="/dashboard" className="btn btn-primary">
                 لوحة التحكم ←

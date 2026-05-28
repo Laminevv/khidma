@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import {
   Briefcase,
   FileText,
@@ -159,6 +160,7 @@ export default function HiringGuidePage() {
           </Link>
 
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <Link
               href="/jobs"
               className="hidden sm:inline-block text-xs font-semibold hover:text-[var(--accent)] transition-colors"

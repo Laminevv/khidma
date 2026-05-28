@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Metadata } from 'next'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import {
   Shield,
   Monitor,
@@ -120,6 +121,7 @@ export default async function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             {user ? (
               <Link href="/dashboard" className="btn btn-primary">
                 لوحة التحكم

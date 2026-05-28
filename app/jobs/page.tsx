@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import {
   Search,
   SlidersHorizontal,
@@ -140,6 +141,7 @@ export default function JobsPage() {
           </nav>
 
           <div className="mr-auto flex items-center gap-4">
+            <LanguageSwitcher />
             {user ? (
               <>
                 <span className="text-[14px] font-semibold hidden sm:inline" style={{ color: 'var(--fg)' }}>
