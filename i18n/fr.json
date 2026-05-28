@@ -313,5 +313,87 @@
     "serverError": "Erreur serveur",
     "networkError": "Erreur de connexion",
     "sessionExpired": "Session expirée. Veuillez vous reconnecter."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "La plateforme freelance leader en Algérie",
+      "headlineMain": "Recrutez les meilleurs.",
+      "headlineAccent": "Réalisez l'impossible.",
+      "subtitle": "Une plateforme premium connectant freelancers professionnels et porteurs de projets ambitieux. Nous garantissons qualité, diversité et confiance dans chaque contrat.",
+      "ctaDashboard": "Aller au tableau de bord",
+      "ctaPostProject": "Publier un projet",
+      "ctaBrowse": "Parcourir les projets"
+    },
+    "trust": {
+      "label": "Approuvé par des équipes performantes"
+    },
+    "values": {
+      "eyebrow": "Nos valeurs",
+      "headlineMain": "La qualité d'abord.",
+      "headlineAccent": "La confiance garantie.",
+      "vetted": {
+        "title": "Talents vérifiés",
+        "description": "Chaque freelancer de notre plateforme passe un processus de vérification rigoureux en plusieurs étapes pour garantir l'excellence technique et l'intégrité professionnelle."
+      },
+      "workflow": {
+        "title": "Flux de travail fluide",
+        "description": "Des paiements par étapes aux outils de communication intégrés, nous fournissons tout ce dont vous avez besoin pour gérer vos projets efficacement."
+      },
+      "diverse": {
+        "title": "Expertise diversifiée",
+        "description": "Accédez à un vaste pool d'experts en développement, design, marketing et consulting. La diversité est notre force."
+      }
+    },
+    "stats": {
+      "freelancers": "Freelancers vérifiés",
+      "projects": "Projets terminés",
+      "satisfaction": "Satisfaction client"
+    },
+    "categories": {
+      "eyebrow": "Catégories",
+      "title": "Parcourir par catégorie",
+      "viewAll": "Voir tous les projets",
+      "openCount": "projet(s) ouvert(s)",
+      "development": "Développement",
+      "design": "Design graphique",
+      "writing": "Traduction et rédaction",
+      "video": "Montage vidéo",
+      "marketing": "Marketing digital",
+      "consulting": "Consulting"
+    },
+    "latestJobs": {
+      "eyebrow": "Nouvelles opportunités",
+      "title": "Derniers projets disponibles",
+      "subtitle": "De nouvelles opportunités ajoutées chaque jour",
+      "noJobs": "Aucun projet ouvert pour le moment.",
+      "browseMore": "Parcourir plus de projets"
+    },
+    "cta": {
+      "title": "Prêt à transformer votre équipe ?",
+      "subtitle": "Rejoignez des milliers d'entreprises qui recrutent les meilleurs talents.",
+      "register": "Créer un compte",
+      "browse": "Parcourir les projets"
+    },
+    "footer": {
+      "description": "La première plateforme algérienne connectant talents locaux et porteurs de projets avec un système de paiement 100% sécurisé.",
+      "forFreelancers": "Pour les freelancers",
+      "browseProjects": "Parcourir les projets",
+      "createAccount": "Créer un compte",
+      "escrowSystem": "Système de séquestre",
+      "forClients": "Pour les clients",
+      "postProject": "Publier un projet",
+      "howToHire": "Comment recruter",
+      "securePay": "Paiement sécurisé",
+      "copyright": "Tous droits réservés © {{year}} خدمة.dz",
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "trustSafety": "Confiance et sécurité"
+    },
+    "time": {
+      "justNow": "À l'instant",
+      "yesterday": "Hier",
+      "hoursAgo": "Il y a {{count}}h",
+      "daysAgo": "Il y a {{count}}j"
+    }
   }
 }

@@ -313,5 +313,87 @@
     "serverError": "Server error",
     "networkError": "Network connection error",
     "sessionExpired": "Session expired. Please sign in again."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Algeria's Leading Freelance Platform",
+      "headlineMain": "Hire the Best.",
+      "headlineAccent": "Achieve the Impossible.",
+      "subtitle": "A premium platform connecting professional freelancers with ambitious project owners. We guarantee quality, diversity, and trust in every contract.",
+      "ctaDashboard": "Go to Dashboard",
+      "ctaPostProject": "Post a Project",
+      "ctaBrowse": "Browse Projects"
+    },
+    "trust": {
+      "label": "Trusted by high-performance teams"
+    },
+    "values": {
+      "eyebrow": "Our Values",
+      "headlineMain": "Quality First.",
+      "headlineAccent": "Trust Guaranteed.",
+      "vetted": {
+        "title": "Vetted Talent",
+        "description": "Every freelancer on our platform goes through a rigorous multi-stage vetting process to ensure technical excellence and professional integrity."
+      },
+      "workflow": {
+        "title": "Seamless Workflow",
+        "description": "From milestone-based payments to integrated communication tools, we provide everything you need to manage your projects effectively."
+      },
+      "diverse": {
+        "title": "Diverse Expertise",
+        "description": "Access a vast pool of experts in development, design, marketing, and consulting. Diversity is our strength."
+      }
+    },
+    "stats": {
+      "freelancers": "Verified Freelancers",
+      "projects": "Completed Projects",
+      "satisfaction": "Client Satisfaction"
+    },
+    "categories": {
+      "eyebrow": "Categories",
+      "title": "Browse by Category",
+      "viewAll": "View All Projects",
+      "openCount": "open project(s)",
+      "development": "Development",
+      "design": "Graphic Design",
+      "writing": "Translation & Writing",
+      "video": "Video Editing",
+      "marketing": "Digital Marketing",
+      "consulting": "Consulting"
+    },
+    "latestJobs": {
+      "eyebrow": "New Opportunities",
+      "title": "Latest Available Projects",
+      "subtitle": "New job opportunities added daily",
+      "noJobs": "No open projects at the moment.",
+      "browseMore": "Browse More Projects"
+    },
+    "cta": {
+      "title": "Ready to Transform Your Workforce?",
+      "subtitle": "Join thousands of companies hiring top talent today.",
+      "register": "Create Account",
+      "browse": "Browse Projects"
+    },
+    "footer": {
+      "description": "Algeria's premier platform connecting local talent with project owners through a 100% secure payment system.",
+      "forFreelancers": "For Freelancers",
+      "browseProjects": "Browse Projects",
+      "createAccount": "Create Account",
+      "escrowSystem": "Escrow System",
+      "forClients": "For Clients",
+      "postProject": "Post a Project",
+      "howToHire": "How to Hire",
+      "securePay": "Secure Payments",
+      "copyright": "All rights reserved © {{year}} خدمة.dz",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "trustSafety": "Trust & Safety"
+    },
+    "time": {
+      "justNow": "Just now",
+      "yesterday": "Yesterday",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago"
+    }
   }
 }
