@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import FileUpload from '@/app/components/FileUpload'
 import { sendNotificationAction } from '@/app/actions/notifications'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
 import { 
   MessageSquare, 
   Send, 
@@ -43,20 +45,24 @@ function getRoomId(userA: string, userB: string) {
   return `${sorted[0]}_${sorted[1]}`
 }
 
-function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'الآن'
-  if (mins < 60) return `${mins}د`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}س`
-  return `${Math.floor(hours / 24)}ي`
-}
-
 function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const targetUserId = searchParams.get('user')
+  const { t, i18n } = useTranslation()
+
+  const DirectionArrow = i18n.language === 'ar' ? ChevronLeft : ChevronRight
+  const DirectionArrowBack = i18n.language === 'ar' ? ChevronRight : ChevronLeft
+
+  function timeAgo(date: string) {
+    const diff = Date.now() - new Date(date).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return t('messages.timeAgo.now')
+    if (mins < 60) return `${mins}${t('messages.timeAgo.mins')}`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}${t('messages.timeAgo.hours')}`
+    return `${Math.floor(hours / 24)}${t('messages.timeAgo.days')}`
+  }
 
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -205,14 +211,14 @@ function MessagesContent() {
     await sendNotificationAction(
       activeConv.other_user_id,
       'message',
-      'رسالة جديدة 💬',
-      `لديك رسالة جديدة بانتظارك.`,
+      t('messages.notification.title'),
+      t('messages.notification.body'),
       `/messages?user=${currentUser.id}`
     )
 
     setConversations(prev => prev.map(c =>
       c.other_user_id === activeConv.other_user_id
-        ? { ...c, last_message: attachments.length > 0 && !newMessage.trim() ? '📎 مرفق' : newMessage.trim(), last_sent_at: new Date().toISOString() }
+        ? { ...c, last_message: attachments.length > 0 && !newMessage.trim() ? t('messages.attachment') : newMessage.trim(), last_sent_at: new Date().toISOString() }
         : c
     ))
 
@@ -235,11 +241,11 @@ function MessagesContent() {
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col" dir="rtl" style={{ background: 'var(--bg)' }}>
+    <div className="h-[100dvh] flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'} style={{ background: 'var(--bg)' }}>
       {/* ─── Topnav (Frosted Glass) ─── */}
       <nav className="topnav z-50 flex-shrink-0 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+          <Link href="/dashboard" className="flex items-center gap-2.5 group hover:no-underline">
             <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center shadow-md shadow-accent/15 transition-all group-hover:scale-105">
               <Briefcase size={18} className="text-white" />
             </div>
@@ -247,22 +253,22 @@ function MessagesContent() {
               خدمة<span className="text-accent">.dz</span>
             </span>
           </Link>
-          <Link href="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1">
-            <span>لوحة التحكم</span>
-            <ChevronLeft size={16} />
+          <Link href="/dashboard" className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1 hover:no-underline">
+            <span>{t('nav.dashboard')}</span>
+            <DirectionArrow size={16} />
           </Link>
         </div>
       </nav>
 
       {/* ─── Main Content Area ─── */}
-      <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-4 gap-2 sm:gap-4">
+      <div className="flex-1 flex overflow-hidden max-w-6xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-4 gap-2 sm:gap-4 ltr:text-left rtl:text-right">
         {/* Conversation list — hidden on mobile when a chat is open */}
         <div className={`${activeConv ? 'hidden sm:flex' : 'flex'} w-full sm:w-80 md:w-96 flex-shrink-0 bg-white rounded-2xl border border-slate-200/80 shadow-xs flex-col overflow-hidden`}>
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2.5 flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-accent-soft text-accent flex items-center justify-center">
               <MessageSquare size={16} />
             </div>
-            <h2 className="font-bold text-slate-800 text-base">المحادثات</h2>
+            <h2 className="font-bold text-slate-800 text-base">{t('messages.conversations')}</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
@@ -270,14 +276,14 @@ function MessagesContent() {
                 <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
                   <MessageSquare className="w-6 h-6 text-slate-300" />
                 </div>
-                <p className="text-slate-400 text-sm font-medium">لا توجد محادثات نشطة</p>
+                <p className="text-slate-400 text-sm font-medium">{t('messages.noActiveConversations')}</p>
               </div>
             ) : (
               conversations.map((conv) => (
                 <button key={conv.other_user_id} onClick={() => openConversation(conv)}
-                  className={`w-full text-right flex items-center gap-3 p-4 hover:bg-slate-50/70 transition-all border-b border-slate-50 relative ${
+                  className={`w-full ${i18n.language === 'ar' ? 'text-right' : 'text-left'} flex items-center gap-3 p-4 hover:bg-slate-50/70 transition-all border-b border-slate-50 relative cursor-pointer ${
                     activeConv?.other_user_id === conv.other_user_id 
-                      ? 'bg-accent-soft/20 border-r-4 border-r-accent' 
+                      ? `bg-accent-soft/20 ${i18n.language === 'ar' ? 'border-r-4 border-r-accent' : 'border-l-4 border-l-accent'}` 
                       : ''
                   }`}>
                   <div className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 shadow-sm">
@@ -290,7 +296,7 @@ function MessagesContent() {
                     </div>
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-xs text-slate-500 truncate leading-relaxed">
-                        {conv.last_message || 'ابدأ المحادثة...'}
+                        {conv.last_message || t('messages.startConversation')}
                       </p>
                       {conv.unread_count > 0 && (
                         <span className="bg-accent text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 shadow-sm shadow-accent/15 animate-pulse">
@@ -313,8 +319,8 @@ function MessagesContent() {
                 <div className="w-16 h-16 bg-accent-soft text-accent rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                   <MessageSquare className="w-8 h-8" />
                 </div>
-                <h3 className="font-bold text-slate-800 text-lg mb-1">صندوق المحادثات</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">اختر محادثة من القائمة الجانبية أو ابدأ التواصل مع المستقلين والعملاء لتنسيق مشاريعك.</p>
+                <h3 className="font-bold text-slate-800 text-lg mb-1">{t('messages.inbox')}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{t('messages.inboxDesc')}</p>
               </div>
             </div>
           ) : (
@@ -323,15 +329,15 @@ function MessagesContent() {
               <div className="p-3 sm:p-4 border-b border-slate-100 flex items-center justify-between bg-white shadow-xs z-10 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   {/* Mobile back button */}
-                  <button onClick={() => setActiveConv(null)} className="sm:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
-                    <ChevronRight className="w-5 h-5" />
+                  <button onClick={() => setActiveConv(null)} className="sm:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors cursor-pointer">
+                    <DirectionArrowBack className="w-5 h-5" />
                   </button>
                   <div className="w-10 h-10 bg-accent text-white rounded-full flex items-center justify-center font-bold text-sm shadow-sm">
                     {activeConv.other_full_name?.charAt(0)}
                   </div>
                   <div>
                     <div className="font-bold text-slate-900 text-sm sm:text-base leading-tight">{activeConv.other_full_name}</div>
-                    <div className="text-xs text-accent font-mono">@{activeConv.other_username}</div>
+                    <div className="text-xs text-accent font-mono" dir="ltr">@{activeConv.other_username}</div>
                   </div>
                 </div>
               </div>
@@ -343,29 +349,29 @@ function MessagesContent() {
                     <div className="w-10 h-10 rounded-full bg-accent-soft text-accent flex items-center justify-center mb-3">
                       <Sparkles className="w-5 h-5" />
                     </div>
-                    <p className="text-slate-400 text-sm font-semibold">ابدأ المحادثة 👋</p>
+                    <p className="text-slate-400 text-sm font-semibold">{t('messages.startConversationGreeting')}</p>
                   </div>
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.sender_id === currentUser?.id
                     return (
-                      <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}>
+                      <div key={msg.id} className={`flex ${isMe ? (i18n.language === 'ar' ? 'justify-start' : 'justify-end') : (i18n.language === 'ar' ? 'justify-end' : 'justify-start')}`}>
                         <div className={`max-w-[75%] sm:max-w-md md:max-w-lg px-4 py-2.5 rounded-2xl text-sm ${
                           isMe 
-                            ? 'bg-[#0f172a] text-white rounded-tr-none shadow-sm' 
-                            : 'bg-white text-slate-800 rounded-tl-none border border-slate-200/80 shadow-xs'
+                            ? `bg-[#0f172a] text-white shadow-sm ${i18n.language === 'ar' ? 'rounded-tr-none' : 'rounded-br-none'}` 
+                            : `bg-white text-slate-800 border border-slate-200/80 shadow-xs ${i18n.language === 'ar' ? 'rounded-tl-none' : 'rounded-bl-none'}`
                         }`}>
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className="flex flex-col gap-2 mb-2">
                               {msg.attachments.map((url, idx) => {
-                                const fileName = url.split('/').pop() || `ملف ${idx + 1}`
+                                const fileName = url.split('/').pop() || `File ${idx + 1}`
                                 const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null
                                 return isImage ? (
                                   <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-black/10 transition-all hover:opacity-90">
                                     <img src={url} alt="attachment" className="max-w-full h-auto object-cover" style={{ maxHeight: '200px' }} />
                                   </a>
                                 ) : (
-                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${isMe ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
+                                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all hover:no-underline ${isMe ? 'bg-white/10 border-white/10 text-white hover:bg-white/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'}`}>
                                     <FileText className="w-4 h-4 flex-shrink-0" />
                                     <span className="truncate max-w-[200px]" dir="ltr">{fileName}</span>
                                   </a>
@@ -373,9 +379,11 @@ function MessagesContent() {
                               })}
                             </div>
                           )}
-                          {msg.content && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>}
+                          {/* USER CONTENT EXACTLY AS WRITTEN */}
+                          {msg.content && <p className="leading-relaxed whitespace-pre-wrap break-words" dir="auto">{msg.content}</p>}
+                          
                           <div className={`flex items-center gap-1.5 text-[10px] mt-1.5 ${isMe ? 'text-slate-300 justify-end' : 'text-slate-400 justify-start'}`}>
-                            <span className="font-mono">{new Date(msg.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="font-mono" dir="ltr">{new Date(msg.created_at).toLocaleTimeString(i18n.language === 'ar' ? 'ar-DZ' : i18n.language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                             {isMe && (
                               <span>
                                 {msg.is_read ? (
@@ -401,13 +409,13 @@ function MessagesContent() {
                     {attachments.map((url, idx) => (
                       <div key={idx} className="flex items-center gap-1.5 bg-accent-soft text-accent px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-accent/15">
                         <span className="truncate max-w-[150px]" dir="ltr">{url.split('/').pop()}</span>
-                        <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-accent hover:text-accent-hover transition-colors font-bold mr-1">×</button>
+                        <button onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))} className="text-accent hover:text-accent-hover transition-colors font-bold ltr:ml-1 rtl:mr-1 cursor-pointer">×</button>
                       </div>
                     ))}
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+                  <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 cursor-pointer">
                     <FileUpload 
                       bucketName="attachments"
                       folderPath={`messages/${getRoomId(currentUser?.id, activeConv.other_user_id)}`}
@@ -419,12 +427,14 @@ function MessagesContent() {
                   <input type="text" value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                    placeholder="اكتب رسالة هنا..."
-                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft transition-all text-slate-800"
-                    style={{ color: '#111827', backgroundColor: '#ffffff' }} />
+                    placeholder={t('messages.typeMessage')}
+                    className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft transition-all text-slate-800 ltr:text-left rtl:text-right"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    dir="auto"
+                  />
                   <button onClick={sendMessage} disabled={(!newMessage.trim() && attachments.length === 0) || sending}
-                    className="w-11 h-11 bg-accent text-white rounded-xl flex items-center justify-center hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none shadow-md shadow-accent/10 flex-shrink-0">
-                    <Send className="w-4.5 h-4.5 rotate-180" />
+                    className={`w-11 h-11 bg-accent text-white rounded-xl flex items-center justify-center hover:bg-accent-hover active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:pointer-events-none shadow-md shadow-accent/10 flex-shrink-0 cursor-pointer ${i18n.language === 'ar' ? 'rotate-180' : ''}`}>
+                    <Send className="w-4.5 h-4.5" />
                   </button>
                 </div>
               </div>

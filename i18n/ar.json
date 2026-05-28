@@ -424,16 +424,24 @@
     }
   },
   "messages": {
-    "title": "الرسائل",
-    "newMessage": "رسالة جديدة",
-    "typeMessage": "اكتب رسالة...",
-    "send": "إرسال",
-    "noMessages": "لا توجد رسائل بعد",
-    "startConversation": "ابدأ محادثة",
-    "attachFile": "إرفاق ملف",
-    "online": "متصل",
-    "offline": "غير متصل",
-    "lastSeen": "آخر ظهور {{time}}"
+    "timeAgo": {
+      "now": "الآن",
+      "mins": "د",
+      "hours": "س",
+      "days": "ي"
+    },
+    "notification": {
+      "title": "رسالة جديدة 💬",
+      "body": "لديك رسالة جديدة بانتظارك."
+    },
+    "attachment": "📎 مرفق",
+    "conversations": "المحادثات",
+    "noActiveConversations": "لا توجد محادثات نشطة",
+    "startConversation": "ابدأ المحادثة...",
+    "inbox": "صندوق المحادثات",
+    "inboxDesc": "اختر محادثة من القائمة الجانبية أو ابدأ التواصل مع المستقلين والعملاء لتنسيق مشاريعك.",
+    "startConversationGreeting": "ابدأ المحادثة 👋",
+    "typeMessage": "اكتب رسالة هنا..."
   },
   "notifications": {
     "title": "الإشعارات",

@@ -424,16 +424,24 @@
     }
   },
   "messages": {
-    "title": "Messages",
-    "newMessage": "New Message",
-    "typeMessage": "Type a message...",
-    "send": "Send",
-    "noMessages": "No messages yet",
-    "startConversation": "Start a conversation",
-    "attachFile": "Attach file",
-    "online": "Online",
-    "offline": "Offline",
-    "lastSeen": "Last seen {{time}}"
+    "timeAgo": {
+      "now": "Just now",
+      "mins": "m",
+      "hours": "h",
+      "days": "d"
+    },
+    "notification": {
+      "title": "New Message 💬",
+      "body": "You have a new message waiting."
+    },
+    "attachment": "📎 Attachment",
+    "conversations": "Conversations",
+    "noActiveConversations": "No active conversations",
+    "startConversation": "Start a conversation...",
+    "inbox": "Inbox",
+    "inboxDesc": "Select a conversation from the sidebar or start communicating with freelancers and clients to coordinate your projects.",
+    "startConversationGreeting": "Start the conversation 👋",
+    "typeMessage": "Type a message here..."
   },
   "notifications": {
     "title": "Notifications",
