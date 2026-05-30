@@ -19,7 +19,8 @@ import {
   Search,
   ShieldCheck,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Settings
 } from 'lucide-react'
 
 interface Job {
