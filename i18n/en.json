@@ -79,6 +79,7 @@
     "currentRole": "Current Mode"
   },
   "profile": {
+    "rating": "Rating",
     "error": {
       "notFound": "User Not Found",
       "notFoundDesc": "We could not find",
@@ -345,6 +346,7 @@
     }
   },
   "contracts": {
+    "activeContracts": "Active Contracts",
     "title": "My Contracts",
     "empty": "No contracts yet",
     "browseJobs": "Browse Projects",

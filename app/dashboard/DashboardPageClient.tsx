@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import '@/lib/i18n'
 import { requestWithdrawalAction } from '@/app/actions/wallet'
-import NotificationBell from '@/app/components/NotificationBell'
-import LanguageSwitcher from '@/app/components/LanguageSwitcher'
 import {
   Briefcase,
   FileText,
@@ -124,12 +122,6 @@ export default function DashboardPageClient({
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="hidden lg:block ltr:ml-4 rtl:mr-4">
-            <LanguageSwitcher />
-          </div>
-          <div className="hidden lg:block ltr:ml-4 rtl:mr-4">
-            <NotificationBell />
-          </div>
           {isClient ? (
             <Link href="/jobs/new" className="btn btn-accent">
               <Plus className="w-4 h-4" />
@@ -184,7 +176,7 @@ export default function DashboardPageClient({
             </div>
           </div>
           <div className="value">{profile.rating ? `${profile.rating}` : '—'}</div>
-          {profile.rating > 0 && <div className="trend">{profile.total_reviews} {t('profile.reviews')}</div>}
+          {profile.rating > 0 && <div className="trend">{profile.total_reviews} {t('profile.stats.reviews')}</div>}
         </div>
       </div>
 

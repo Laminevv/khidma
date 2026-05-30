@@ -79,6 +79,7 @@
     "currentRole": "Mode actuel"
   },
   "profile": {
+    "rating": "Évaluation",
     "error": {
       "notFound": "Utilisateur Introuvable",
       "notFoundDesc": "Nous n'avons pas pu trouver",
@@ -345,6 +346,7 @@
     }
   },
   "contracts": {
+    "activeContracts": "Contrats Actifs",
     "title": "Mes Contrats",
     "empty": "Aucun contrat pour le moment",
     "browseJobs": "Parcourir les Projets",

@@ -79,6 +79,7 @@
     "currentRole": "الوضع الحالي"
   },
   "profile": {
+    "rating": "التقييم",
     "error": {
       "notFound": "المستخدم غير موجود",
       "notFoundDesc": "لم نتمكن من العثور على",
@@ -345,6 +346,7 @@
     }
   },
   "contracts": {
+    "activeContracts": "عقود نشطة",
     "title": "عقودي",
     "empty": "لا توجد عقود بعد",
     "browseJobs": "تصفح المشاريع",
